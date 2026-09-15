@@ -1,0 +1,17 @@
+{
+  "version": "1.0",
+  "meta": {
+    "name": "dtf_22_leg_lower",
+    "units": "mm",
+    "description": "小腿段（铸铁灰）：170x140x90 方柱，顶缘倒角12。装配：z 60..150（上端接膝销 Ø70 @z115，下端接爪座）。4 实例。"
+  },
+  "parameters": {
+    "lo_x": { "value": 170, "min": 130, "max": 220, "description": "小腿 X 厚" },
+    "lo_y": { "value": 140, "min": 110, "max": 180, "description": "小腿 Y 宽" },
+    "lo_h": { "value": 90, "min": 60, "max": 130, "description": "小腿高度" }
+  },
+  "features": [
+    { "id": "lower_leg", "type": "extrude", "profile": { "shape": "rectangle", "length": { "param": "lo_x" }, "width": { "param": "lo_y" } }, "plane_spec": { "plane": "XY" }, "distance": { "param": "lo_h" }, "mode": "new" },
+    { "id": "lower_chamfer", "type": "chamfer", "depends_on": ["lower_leg"], "distance": 12, "target": "lower_leg", "edges": "top" }
+  ]
+}

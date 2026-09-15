@@ -1,0 +1,18 @@
+{
+  "version": "1.0",
+  "meta": {
+    "name": "dtf_15_chimney",
+    "units": "mm",
+    "description": "铜烟囱（古铜）：底座 Ø260x80 + 主管 Ø180 高1460 + 顶帽 Ø300x50 + 顶圈 Ø220x70；局部底 z0 落于茶室地板（全局 z620），顶部全局 2200（整机最高点），从屋顶烟囱缺口穿出（缺口四周留 10mm 以上间隙）。"
+  },
+  "parameters": {
+    "stack_dia": { "value": 180, "min": 140, "max": 240, "description": "主管直径" },
+    "stack_h": { "value": 1460, "min": 1200, "max": 1700, "description": "主管高度" }
+  },
+  "features": [
+    { "id": "chim_base", "type": "extrude", "profile": { "shape": "circle", "diameter": 260 }, "plane_spec": { "plane": "XY" }, "distance": 80, "mode": "new" },
+    { "id": "chim_stack", "type": "extrude", "depends_on": ["chim_base"], "profile": { "shape": "circle", "diameter": { "param": "stack_dia" } }, "plane_spec": { "plane": "XY" }, "distance": { "param": "stack_h" }, "mode": "add", "target": "chim_base" },
+    { "id": "chim_cap", "type": "extrude", "depends_on": ["chim_stack"], "profile": { "shape": "circle", "diameter": 300 }, "plane_spec": { "plane": "XY", "offset": 1460 }, "distance": 50, "mode": "add", "target": "chim_stack" },
+    { "id": "chim_rim", "type": "extrude", "depends_on": ["chim_cap"], "profile": { "shape": "circle", "diameter": 220 }, "plane_spec": { "plane": "XY", "offset": 1510 }, "distance": 70, "mode": "add", "target": "chim_cap" }
+  ]
+}

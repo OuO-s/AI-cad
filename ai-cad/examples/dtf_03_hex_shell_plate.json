@@ -1,0 +1,16 @@
+{
+  "version": "1.0",
+  "meta": {
+    "name": "dtf_03_hex_shell_plate",
+    "units": "mm",
+    "description": "六边形黄铜龟壳板（古铜）：正六边形外接圆半径215（对边距约372），厚35，竖直棱边圆角12。装配时以多实例铺在鼓体顶面（环 r=500 六块 + 中心一块）。"
+  },
+  "parameters": {
+    "hex_radius": { "value": 215, "min": 150, "max": 300, "description": "六边形外接圆半径" },
+    "plate_thk": { "value": 35, "min": 20, "max": 60, "description": "板厚" }
+  },
+  "features": [
+    { "id": "hex_plate", "type": "extrude", "profile": { "shape": "polygon", "sides": 6, "circumscribed_radius": { "param": "hex_radius" } }, "plane_spec": { "plane": "XY" }, "distance": { "param": "plate_thk" }, "mode": "new" },
+    { "id": "hex_plate_fillet", "type": "fillet", "depends_on": ["hex_plate"], "radius": 12, "target": "hex_plate", "edges": "vertical" }
+  ]
+}

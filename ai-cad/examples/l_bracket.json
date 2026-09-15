@@ -1,0 +1,65 @@
+{
+  "version": "1.0",
+  "meta": {
+    "name": "l_bracket",
+    "units": "mm",
+    "description": "L 形支架：底板 80x50x6，立板立于底板后缘（80 宽 x6 厚 x50 高），底板前部两个 M3 通孔（Ø3.4），无倒角（应用户要求去掉）。用户指定：底板厚 6、两个 M3 孔、去倒角。假设：底板长 80/深 50、立板高 50 且与底板同厚 6、孔位对称 ±25（y=10）、通孔按通径配合。派生字面量：立板中心 y=22（= base_depth/2 - wall_thickness/2 = 25-3），孔中心 y=10，改 base_depth/wall_thickness 需同步换算。坐标系：Z 向上，原点在底板底面中心。"
+  },
+  "parameters": {
+    "base_length": { "value": 80, "min": 40, "max": 200, "description": "底板 X 方向长度" },
+    "base_depth": { "value": 50, "min": 25, "max": 150, "description": "底板 Y 方向深度" },
+    "base_thickness": { "value": 6, "min": 3, "max": 15, "description": "底板厚度（用户指定 6）" },
+    "wall_height": { "value": 50, "min": 20, "max": 150, "description": "立板高度" },
+    "wall_thickness": { "value": 6, "min": 3, "max": 15, "description": "立板厚度（与底板同厚）" },
+    "m3_hole_diameter": { "value": 3.4, "min": 3.2, "max": 3.6, "description": "M3 通孔直径（通径配合）" },
+    "hole_offset_x": { "value": 25, "min": 10, "max": 35, "description": "孔中心距中心线 X 距离" },
+    "hole_y": { "value": 10, "min": 5, "max": 15, "description": "孔中心 Y 坐标（底板前部）" }
+  },
+  "features": [
+    {
+      "id": "base",
+      "type": "extrude",
+      "profile": {
+        "shape": "rectangle",
+        "length": { "param": "base_length" },
+        "width": { "param": "base_depth" }
+      },
+      "plane_spec": { "plane": "XY" },
+      "distance": { "param": "base_thickness" },
+      "mode": "new"
+    },
+    {
+      "id": "wall",
+      "type": "extrude",
+      "depends_on": ["base"],
+      "profile": {
+        "shape": "rectangle",
+        "length": { "param": "base_length" },
+        "width": { "param": "wall_thickness" },
+        "center": { "x": 0, "y": 22 }
+      },
+      "plane_spec": { "plane": "XY", "offset": { "param": "base_thickness" } },
+      "distance": { "param": "wall_height" },
+      "mode": "add",
+      "target": "base"
+    },
+    {
+      "id": "m3_hole_left",
+      "type": "hole",
+      "depends_on": ["wall"],
+      "diameter": { "param": "m3_hole_diameter" },
+      "center": { "x": -25, "y": { "param": "hole_y" }, "z": 3 },
+      "through": true,
+      "target": "wall"
+    },
+    {
+      "id": "m3_hole_right",
+      "type": "hole",
+      "depends_on": ["m3_hole_left"],
+      "diameter": { "param": "m3_hole_diameter" },
+      "center": { "x": { "param": "hole_offset_x" }, "y": { "param": "hole_y" }, "z": 3 },
+      "through": true,
+      "target": "m3_hole_left"
+    }
+  ]
+}

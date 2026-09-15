@@ -1,0 +1,20 @@
+{
+  "version": "1.0",
+  "meta": {
+    "name": "dtf_14_lantern",
+    "units": "mm",
+    "description": "小灯笼（朱红整件）：底座盘 Ø120x20 + 灯杆 Ø40 高550 + 灯笼体 Ø170x270 + 顶盖 Ø210x35 + 顶钮 Ø60x30。局部底面 z0 落于平台顶。2 实例 (1200,±800)。"
+  },
+  "parameters": {
+    "body_dia": { "value": 170, "min": 130, "max": 220, "description": "灯笼体直径" },
+    "body_h": { "value": 270, "min": 200, "max": 340, "description": "灯笼体高" },
+    "pole_h": { "value": 550, "min": 400, "max": 700, "description": "灯杆高" }
+  },
+  "features": [
+    { "id": "lantern_base", "type": "extrude", "profile": { "shape": "circle", "diameter": 120 }, "plane_spec": { "plane": "XY" }, "distance": 20, "mode": "new" },
+    { "id": "lantern_pole", "type": "extrude", "depends_on": ["lantern_base"], "profile": { "shape": "circle", "diameter": 40 }, "plane_spec": { "plane": "XY", "offset": 20 }, "distance": { "param": "pole_h" }, "mode": "add", "target": "lantern_base" },
+    { "id": "lantern_body", "type": "extrude", "depends_on": ["lantern_pole"], "profile": { "shape": "circle", "diameter": { "param": "body_dia" } }, "plane_spec": { "plane": "XY", "offset": 570 }, "distance": { "param": "body_h" }, "mode": "add", "target": "lantern_pole" },
+    { "id": "lantern_cap", "type": "extrude", "depends_on": ["lantern_body"], "profile": { "shape": "circle", "diameter": 210 }, "plane_spec": { "plane": "XY", "offset": 840 }, "distance": 35, "mode": "add", "target": "lantern_body" },
+    { "id": "lantern_knob", "type": "extrude", "depends_on": ["lantern_cap"], "profile": { "shape": "circle", "diameter": 60 }, "plane_spec": { "plane": "XY", "offset": 875 }, "distance": 30, "mode": "add", "target": "lantern_cap" }
+  ]
+}

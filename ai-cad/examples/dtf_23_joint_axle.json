@@ -1,0 +1,16 @@
+{
+  "version": "1.0",
+  "meta": {
+    "name": "dtf_23_joint_axle",
+    "units": "mm",
+    "description": "关节销轴（古铜，可动关节旋转轴件）：Ø80 圆柱销沿 Y 长50（XZ 面双向对称拉伸），棱边倒角5。髋关节（z330）与膝关节（z115，Ø70 由装配缩放不适用——统一 Ø80）各 2 侧，4 腿共 16 实例；旋转轴 = Y。"
+  },
+  "parameters": {
+    "axle_dia": { "value": 80, "min": 55, "max": 110, "description": "销轴直径" },
+    "axle_len": { "value": 50, "min": 35, "max": 70, "description": "销轴长度" }
+  },
+  "features": [
+    { "id": "axle", "type": "extrude", "profile": { "shape": "circle", "diameter": { "param": "axle_dia" } }, "plane_spec": { "plane": "XZ" }, "distance": { "param": "axle_len" }, "direction": "symmetric", "mode": "new" },
+    { "id": "axle_chamfer", "type": "chamfer", "depends_on": ["axle"], "distance": 5, "target": "axle", "edges": "all" }
+  ]
+}

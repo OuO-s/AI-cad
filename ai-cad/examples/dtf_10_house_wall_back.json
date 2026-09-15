@@ -1,0 +1,19 @@
+{
+  "version": "1.0",
+  "meta": {
+    "name": "dtf_10_house_wall_back",
+    "units": "mm",
+    "description": "茶室后墙板（深胡桃木）：740x40x820，一个 320x420 窗洞（局部居中，z 200..620）。装配时绕 Z 转 90° 立于 x=300 处。"
+  },
+  "parameters": {
+    "wall_len": { "value": 740, "min": 600, "max": 900, "description": "墙板长度" },
+    "wall_thk": { "value": 40, "min": 25, "max": 60, "description": "墙板厚度" },
+    "wall_height": { "value": 820, "min": 600, "max": 1000, "description": "墙板高度" },
+    "win_w": { "value": 320, "min": 240, "max": 400, "description": "窗洞宽" },
+    "win_h": { "value": 420, "min": 320, "max": 520, "description": "窗洞高" }
+  },
+  "features": [
+    { "id": "back_wall", "type": "extrude", "profile": { "shape": "rectangle", "length": { "param": "wall_len" }, "width": { "param": "wall_thk" } }, "plane_spec": { "plane": "XY" }, "distance": { "param": "wall_height" }, "mode": "new" },
+    { "id": "win_cut", "type": "extrude", "depends_on": ["back_wall"], "profile": { "shape": "rectangle", "length": { "param": "win_w" }, "width": 70 }, "plane_spec": { "plane": "XY", "offset": 200 }, "distance": { "param": "win_h" }, "mode": "subtract", "target": "back_wall" }
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "version": "1.0",
+  "meta": {
+    "name": "dtf_24_hydraulic_cylinder",
+    "units": "mm",
+    "description": "液压油缸（古铜）：缸体 Ø120x320 + 上下端盖 Ø150x20。装配：立置 (leg_x-170, ±1110)，z 90..410，上端接活塞杆。4 实例。"
+  },
+  "parameters": {
+    "cyl_dia": { "value": 120, "min": 90, "max": 160, "description": "缸体直径" },
+    "cyl_h": { "value": 320, "min": 240, "max": 420, "description": "缸体长度" },
+    "cap_dia": { "value": 150, "min": 120, "max": 190, "description": "端盖直径" }
+  },
+  "features": [
+    { "id": "cyl_barrel", "type": "extrude", "profile": { "shape": "circle", "diameter": { "param": "cyl_dia" } }, "plane_spec": { "plane": "XY" }, "distance": { "param": "cyl_h" }, "mode": "new" },
+    { "id": "cyl_cap_top", "type": "extrude", "depends_on": ["cyl_barrel"], "profile": { "shape": "circle", "diameter": { "param": "cap_dia" } }, "plane_spec": { "plane": "XY", "offset": 300 }, "distance": 20, "mode": "add", "target": "cyl_barrel" },
+    { "id": "cyl_cap_bot", "type": "extrude", "depends_on": ["cyl_cap_top"], "profile": { "shape": "circle", "diameter": { "param": "cap_dia" } }, "plane_spec": { "plane": "XY" }, "distance": 20, "mode": "add", "target": "cyl_cap_top" }
+  ]
+}

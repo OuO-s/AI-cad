@@ -1,0 +1,17 @@
+{
+  "version": "1.0",
+  "meta": {
+    "name": "dtf_20_goggle_bridge",
+    "units": "mm",
+    "description": "护目镜鼻梁桥（古铜）：40x100x40 小方桥（XZ 面双向对称拉伸），棱边倒角5。装于两镜圈之间 (1740,0,780)。"
+  },
+  "parameters": {
+    "br_x": { "value": 40, "min": 25, "max": 60, "description": "桥 X 厚" },
+    "br_y": { "value": 100, "min": 70, "max": 130, "description": "桥 Y 宽" },
+    "br_z": { "value": 40, "min": 25, "max": 60, "description": "桥 Z 高" }
+  },
+  "features": [
+    { "id": "bridge", "type": "extrude", "profile": { "shape": "rectangle", "length": { "param": "br_x" }, "width": { "param": "br_z" } }, "plane_spec": { "plane": "XZ" }, "distance": { "param": "br_y" }, "direction": "symmetric", "mode": "new" },
+    { "id": "bridge_chamfer", "type": "chamfer", "depends_on": ["bridge"], "distance": 5, "target": "bridge", "edges": "all" }
+  ]
+}

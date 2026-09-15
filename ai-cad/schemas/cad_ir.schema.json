@@ -1,0 +1,414 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-cad.local/schemas/cad_ir.schema.json",
+  "title": "CAD IR (Intermediate Representation)",
+  "description": "AI CAD 平台的中间表示：LLM 意图解析的输出、确定性代码生成器的输入。大模型只产出本 Schema 的 JSON，绝不直接生成 Python 代码。",
+  "type": "object",
+  "required": ["version", "meta", "features"],
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "const": "1.0",
+      "description": "IR 版本号。生成器按版本分派模板。"
+    },
+    "meta": {
+      "type": "object",
+      "required": ["name", "units"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120,
+          "description": "模型名称（同时用作导出文件名基名，仅限安全字符）。"
+        },
+        "units": {
+          "const": "mm",
+          "description": "长度单位。当前版本只支持毫米。"
+        },
+        "description": {
+          "type": "string",
+          "maxLength": 2000,
+          "description": "自然语言意图描述（可选，便于追溯）。"
+        }
+      }
+    },
+    "parameters": {
+      "type": "object",
+      "description": "参数化变量表。特征字段可通过 {\"param\": \"名\"} 引用，供前端滑块/生成器替换。",
+      "additionalProperties": {
+        "$ref": "#/$defs/parameterDefinition"
+      }
+    },
+    "features": {
+      "type": "array",
+      "minItems": 1,
+      "description": "特征列表。数组顺序即执行顺序（拓扑序：被依赖者必须在前）。每个特征必须有唯一 id。",
+      "items": {
+        "$ref": "#/$defs/feature"
+      }
+    }
+  },
+  "$defs": {
+    "parameterDefinition": {
+      "type": "object",
+      "required": ["value"],
+      "additionalProperties": false,
+      "properties": {
+        "value": {
+          "type": "number",
+          "description": "默认值。"
+        },
+        "min": {
+          "type": "number",
+          "description": "滑块下限（可选）。"
+        },
+        "max": {
+          "type": "number",
+          "description": "滑块上限（可选）。"
+        },
+        "description": {
+          "type": "string",
+          "maxLength": 500,
+          "description": "人类可读的参数含义。"
+        }
+      }
+    },
+    "numberOrParam": {
+      "oneOf": [
+        { "type": "number" },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["param"],
+          "properties": {
+            "param": {
+              "type": "string",
+              "description": "parameters 表中的变量名。"
+            }
+          }
+        }
+      ],
+      "description": "字面数值，或对 parameters 变量的引用。"
+    },
+    "positiveNumberOrParam": {
+      "$ref": "#/$defs/numberOrParam",
+      "description": "语义约束：解析后必须 > 0（由语义校验器检查，JSON Schema 无法跨 oneOf 表达）。"
+    },
+    "planeName": {
+      "enum": ["XY", "XZ", "YZ"],
+      "description": "基准面。XY=顶视(Z法向), XZ=前视(-Y法向), YZ=右视(X法向)。"
+    },
+    "sketchPlane": {
+      "type": "object",
+      "required": ["plane"],
+      "additionalProperties": false,
+      "properties": {
+        "plane": { "$ref": "#/$defs/planeName" },
+        "offset": {
+          "$ref": "#/$defs/numberOrParam",
+          "description": "沿基准面法向的平移量（默认 0）。"
+        },
+        "rotation": {
+          "type": "number",
+          "description": "草图平面内绕法向的旋转角（度，默认 0，逆时针）。"
+        }
+      }
+    },
+    "point2d": {
+      "type": "object",
+      "required": ["x", "y"],
+      "additionalProperties": false,
+      "properties": {
+        "x": { "$ref": "#/$defs/numberOrParam" },
+        "y": { "$ref": "#/$defs/numberOrParam" }
+      },
+      "description": "草图平面内的二维点（局部坐标）。"
+    },
+    "point3d": {
+      "type": "object",
+      "required": ["x", "y", "z"],
+      "additionalProperties": false,
+      "properties": {
+        "x": { "$ref": "#/$defs/numberOrParam" },
+        "y": { "$ref": "#/$defs/numberOrParam" },
+        "z": { "$ref": "#/$defs/numberOrParam" }
+      },
+      "description": "全局三维点（mm，右手系，Z 向上）。"
+    },
+    "profile": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["shape", "length", "width"],
+          "additionalProperties": false,
+          "properties": {
+            "shape": { "const": "rectangle" },
+            "length": { "$ref": "#/$defs/positiveNumberOrParam", "description": "局部 X 方向边长" },
+            "width": { "$ref": "#/$defs/positiveNumberOrParam", "description": "局部 Y 方向边长" },
+            "center": { "$ref": "#/$defs/point2d", "description": "矩形中心（默认原点）" }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["shape", "diameter"],
+          "additionalProperties": false,
+          "properties": {
+            "shape": { "const": "circle" },
+            "diameter": { "$ref": "#/$defs/positiveNumberOrParam" },
+            "center": { "$ref": "#/$defs/point2d", "description": "圆心（默认原点）" }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["shape", "sides", "circumscribed_radius"],
+          "additionalProperties": false,
+          "properties": {
+            "shape": { "const": "polygon" },
+            "sides": {
+              "type": "integer",
+              "minimum": 3,
+              "maximum": 64,
+              "description": "边数（正多边形）。"
+            },
+            "circumscribed_radius": {
+              "$ref": "#/$defs/positiveNumberOrParam",
+              "description": "外接圆半径。"
+            },
+            "center": { "$ref": "#/$defs/point2d", "description": "多边形中心（默认原点）" },
+            "rotation": {
+              "type": "number",
+              "description": "绕中心的旋转角（度，默认 0）。"
+            }
+          }
+        }
+      ],
+      "description": "草图轮廓。当前版本每个 sketch 恰含一个轮廓。"
+    },
+    "axisSpec": {
+      "oneOf": [
+        {
+          "enum": ["X", "Y", "Z"],
+          "description": "全局坐标轴。"
+        },
+        {
+          "type": "object",
+          "required": ["start", "end"],
+          "additionalProperties": false,
+          "properties": {
+            "start": { "$ref": "#/$defs/point3d" },
+            "end": { "$ref": "#/$defs/point3d" },
+            "description": "由两点定义的轴（起点指向终点）。"
+          }
+        }
+      ]
+    },
+    "edgeSelector": {
+      "oneOf": [
+        {
+          "enum": ["all", "vertical", "horizontal", "top", "bottom"]
+        },
+        {
+          "type": "object",
+          "required": ["indices"],
+          "additionalProperties": false,
+          "properties": {
+            "indices": {
+              "type": "array",
+              "minItems": 1,
+              "items": { "type": "integer", "minimum": 0 },
+              "description": "按生成器确定性边排序的索引（脆弱，优先用枚举选择器）。"
+            }
+          }
+        }
+      ],
+      "description": "边选择器：all=全部边；vertical=竖直边；horizontal=水平边；top/bottom=顶/底面边。"
+    },
+    "feature": {
+      "type": "object",
+      "required": ["id", "type"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*$",
+          "description": "唯一标识（snake_case），供依赖引用。"
+        },
+        "type": {
+          "enum": ["sketch", "extrude", "revolve", "hole", "fillet", "chamfer", "boolean", "import_step"],
+          "description": "特征类型。"
+        },
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "description": "[import_step] STEP 文件路径（相对 IR JSON 所在目录，或绝对路径）。导入的实体成为一条实体链的根，可被后续特征 target。"
+        },
+        "depends_on": {
+          "type": "array",
+          "items": { "type": "string" },
+          "uniqueItems": true,
+          "description": "显式依赖的特征 id（必须在本特征之前出现）。"
+        },
+        "profile": { "$ref": "#/$defs/profile", "description": "[sketch/extrude/revolve]" },
+        "plane_spec": { "$ref": "#/$defs/sketchPlane", "description": "[sketch/extrude/revolve]" },
+        "distance": { "$ref": "#/$defs/positiveNumberOrParam", "description": "[extrude/chamfer]" },
+        "direction": {
+          "enum": ["normal", "antinormal", "symmetric"],
+          "description": "[extrude] normal=沿法向；antinormal=逆法向；symmetric=双向对称（各 distance/2）。默认 normal。"
+        },
+        "mode": {
+          "enum": ["add", "subtract", "intersect", "new"],
+          "description": "[extrude/revolve] 布尔模式。默认 add。new=创建独立实体。"
+        },
+        "target": {
+          "type": "string",
+          "description": "[extrude/revolve/hole/fillet/chamfer] 施加到的实体特征 id。"
+        },
+        "axis": { "$ref": "#/$defs/axisSpec", "description": "[revolve] 旋转轴" },
+        "angle": {
+          "$ref": "#/$defs/numberOrParam",
+          "description": "[revolve] 旋转角（度，默认 360）。语义约束：0 < angle <= 360。"
+        },
+        "diameter": { "$ref": "#/$defs/positiveNumberOrParam", "description": "[hole]" },
+        "center": { "$ref": "#/$defs/point3d", "description": "[hole] 孔轴线经过的点" },
+        "depth": {
+          "$ref": "#/$defs/positiveNumberOrParam",
+          "description": "[hole] 盲孔深度。through=true 时省略。"
+        },
+        "through": {
+          "type": "boolean",
+          "description": "[hole] true=贯穿目标（推荐默认）。depth 与 through 二选一。"
+        },
+        "radius": { "$ref": "#/$defs/positiveNumberOrParam", "description": "[fillet] 圆角半径" },
+        "edges": { "$ref": "#/$defs/edgeSelector", "description": "[fillet/chamfer] 边选择（默认 all）" },
+        "operation": {
+          "enum": ["union", "subtract", "intersect"],
+          "description": "[boolean]"
+        },
+        "operands": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": { "type": "string" },
+          "description": "[boolean] 两个操作数的特征 id。subtract: operands[0] - operands[1]。"
+        }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "type": { "const": "sketch" } }, "required": ["type"] },
+          "then": { "required": ["profile", "plane_spec"] }
+        },
+        {
+          "if": { "properties": { "type": { "const": "extrude" } }, "required": ["type"] },
+          "then": { "required": ["profile", "distance"] }
+        },
+        {
+          "if": { "properties": { "type": { "const": "revolve" } }, "required": ["type"] },
+          "then": { "required": ["profile", "axis"] }
+        },
+        {
+          "if": { "properties": { "type": { "const": "hole" } }, "required": ["type"] },
+          "then": { "required": ["diameter", "center"] }
+        },
+        {
+          "if": { "properties": { "type": { "const": "fillet" } }, "required": ["type"] },
+          "then": { "required": ["radius", "target"] }
+        },
+        {
+          "if": { "properties": { "type": { "const": "chamfer" } }, "required": ["type"] },
+          "then": { "required": ["distance", "target"] }
+        },
+        {
+          "if": { "properties": { "type": { "const": "boolean" } }, "required": ["type"] },
+          "then": { "required": ["operation", "operands"] }
+        },
+        {
+          "if": { "properties": { "type": { "const": "import_step" } }, "required": ["type"] },
+          "then": { "required": ["path"] }
+        }
+      ],
+      "additionalProperties": false,
+      "description": "特征通用对象。字段与类型的对应关系见各字段 description 中的 [type] 标注，由语义校验器强制。"
+    },
+    "feature_sketch": {
+      "type": "object",
+      "description": "草图：在指定基准面上定义一个轮廓（矩形/圆/正多边形）。",
+      "properties": {
+        "profile": { "$ref": "#/$defs/profile" },
+        "plane_spec": { "$ref": "#/$defs/sketchPlane" }
+      }
+    },
+    "feature_extrude": {
+      "type": "object",
+      "description": "拉伸：将内联轮廓沿草图法向拉伸成实体，并立即施加到目标实体。",
+      "properties": {
+        "profile": { "$ref": "#/$defs/profile" },
+        "plane_spec": { "$ref": "#/$defs/sketchPlane" },
+        "distance": { "$ref": "#/$defs/positiveNumberOrParam" },
+        "direction": { "enum": ["normal", "antinormal", "symmetric"] },
+        "mode": { "enum": ["add", "subtract", "intersect", "new"] },
+        "target": { "type": "string" }
+      }
+    },
+    "feature_revolve": {
+      "type": "object",
+      "description": "旋转：将内联轮廓绕轴旋转成实体，并立即施加到目标实体。",
+      "properties": {
+        "profile": { "$ref": "#/$defs/profile" },
+        "plane_spec": { "$ref": "#/$defs/sketchPlane" },
+        "axis": { "$ref": "#/$defs/axisSpec" },
+        "angle": { "$ref": "#/$defs/numberOrParam" },
+        "mode": { "enum": ["add", "subtract", "intersect", "new"] },
+        "target": { "type": "string" }
+      }
+    },
+    "feature_hole": {
+      "type": "object",
+      "description": "孔：从指定点沿 -Z（可选方向）去除圆柱体。贯穿孔会向下延伸足够长度确保穿透。",
+      "properties": {
+        "diameter": { "$ref": "#/$defs/positiveNumberOrParam" },
+        "center": { "$ref": "#/$defs/point3d" },
+        "depth": { "$ref": "#/$defs/positiveNumberOrParam" },
+        "through": { "type": "boolean" },
+        "target": { "type": "string" }
+      }
+    },
+    "feature_fillet": {
+      "type": "object",
+      "description": "圆角：在目标实体选定边上加圆角。",
+      "properties": {
+        "radius": { "$ref": "#/$defs/positiveNumberOrParam" },
+        "target": { "type": "string" },
+        "edges": { "$ref": "#/$defs/edgeSelector" }
+      }
+    },
+    "feature_chamfer": {
+      "type": "object",
+      "description": "倒角：在目标实体选定边上加对称 45° 倒角。",
+      "properties": {
+        "distance": { "$ref": "#/$defs/positiveNumberOrParam" },
+        "target": { "type": "string" },
+        "edges": { "$ref": "#/$defs/edgeSelector" }
+      }
+    },
+    "feature_import_step": {
+      "type": "object",
+      "description": "导入 STEP：把既有 STEP 文件读为根实体，后续特征（hole/extrude/fillet/chamfer/boolean）可 target 它，实现“理解现有模型 + 修改增加”。路径相对 IR JSON 所在目录或绝对路径。",
+      "properties": {
+        "path": { "type": "string", "minLength": 1 }
+      }
+    },
+    "feature_boolean": {
+      "type": "object",
+      "description": "布尔运算：对两个已存在的实体做并/交/差。",
+      "properties": {
+        "operation": { "enum": ["union", "subtract", "intersect"] },
+        "operands": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": { "type": "string" }
+        }
+      }
+    }
+  }
+}

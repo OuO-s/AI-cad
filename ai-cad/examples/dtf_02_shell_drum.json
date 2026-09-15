@@ -1,0 +1,16 @@
+{
+  "version": "1.0",
+  "meta": {
+    "name": "dtf_02_shell_drum",
+    "units": "mm",
+    "description": "龟壳基座鼓体（墨绿）：Ø1820 圆柱，z 0..420（装配时底面落于平台顶 z=560，中心平移至 (-700,0)），顶缘圆角30。假设：直径1820、高420 由总长3.5m 与顶部茶室布置推得。"
+  },
+  "parameters": {
+    "drum_dia": { "value": 1820, "min": 1500, "max": 2100, "description": "鼓体外径" },
+    "drum_height": { "value": 420, "min": 300, "max": 600, "description": "鼓体高度" }
+  },
+  "features": [
+    { "id": "drum", "type": "extrude", "profile": { "shape": "circle", "diameter": { "param": "drum_dia" } }, "plane_spec": { "plane": "XY" }, "distance": { "param": "drum_height" }, "mode": "new" },
+    { "id": "drum_fillet", "type": "fillet", "depends_on": ["drum"], "radius": 30, "target": "drum", "edges": "top" }
+  ]
+}

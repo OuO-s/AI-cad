@@ -1,0 +1,17 @@
+{
+  "version": "1.0",
+  "meta": {
+    "name": "dtf_05_gear_large",
+    "units": "mm",
+    "description": "大型黄铜齿轮（古铜）：18 齿近似（正18边形外接圆Ø540），厚55，中心 Ø90 通孔。装配时旋转 90°使轴线沿 Y，贴装于鼓体两侧面。"
+  },
+  "parameters": {
+    "gear_dia": { "value": 540, "min": 400, "max": 700, "description": "齿轮外接圆直径" },
+    "gear_thk": { "value": 55, "min": 35, "max": 80, "description": "齿轮厚度" },
+    "bore_dia": { "value": 90, "min": 60, "max": 120, "description": "中心孔径" }
+  },
+  "features": [
+    { "id": "gear_blank", "type": "extrude", "profile": { "shape": "polygon", "sides": 18, "circumscribed_radius": 270 }, "plane_spec": { "plane": "XY" }, "distance": { "param": "gear_thk" }, "mode": "new" },
+    { "id": "gear_bore", "type": "hole", "depends_on": ["gear_blank"], "diameter": { "param": "bore_dia" }, "center": { "x": 0, "y": 0, "z": 27 }, "through": true, "target": "gear_blank" }
+  ]
+}

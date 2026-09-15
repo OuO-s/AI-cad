@@ -1,0 +1,17 @@
+{
+  "version": "1.0",
+  "meta": {
+    "name": "dtf_28_claw_prong",
+    "units": "mm",
+    "description": "爪趾（铸铁灰）：160x45x55 爪 blade，顶缘倒角10。装配：每爪 3 趾（前一后二），从爪座边缘向外伸出，z 0..55 触地。12 实例。"
+  },
+  "parameters": {
+    "pr_len": { "value": 160, "min": 120, "max": 210, "description": "爪趾长（X）" },
+    "pr_wid": { "value": 45, "min": 35, "max": 60, "description": "爪趾宽（Y）" },
+    "pr_h": { "value": 55, "min": 40, "max": 70, "description": "爪趾高" }
+  },
+  "features": [
+    { "id": "prong", "type": "extrude", "profile": { "shape": "rectangle", "length": { "param": "pr_len" }, "width": { "param": "pr_wid" } }, "plane_spec": { "plane": "XY" }, "distance": { "param": "pr_h" }, "mode": "new" },
+    { "id": "prong_chamfer", "type": "chamfer", "depends_on": ["prong"], "distance": 10, "target": "prong", "edges": "top" }
+  ]
+}

@@ -1,0 +1,183 @@
+{
+  "version": "1.0",
+  "meta": {
+    "name": "go2_piper_strap_plate",
+    "units": "mm",
+    "description": "Go2+Piper 绑带式转接板（方案C，不动Go2壳体螺丝）。板 140(X 前后) x 160(Y 左右) x 10 厚，4xM5.5 通孔按 Piper 底座 70x70 孔距居中（Piper 底座 80x95，95 边沿 X 方向放置）。两侧各两条纵向防滑导轨（4mm 宽 x 3mm 高，全长贯通）夹住 25mm 宽绑带，绑带沿 X 向从 Go2 前后整体抱住机身。中央 Ø30 走线/减重孔 + 4xØ12 减重孔。假设：绑带 25mm 宽（导轨内净距 28mm）；导轨 Y 位置 43/71 为字面量，依赖 strap_y=57 与 rib_gap=14（改参数需同步）；材料 PETG/尼龙 3D 打印，板厚 10；孔组中心与板中心重合。"
+  },
+  "parameters": {
+    "plate_len_x": { "value": 140, "min": 120, "max": 200, "description": "板 X 方向长度（前后）" },
+    "plate_wid_y": { "value": 160, "min": 140, "max": 220, "description": "板 Y 方向宽度（左右）" },
+    "plate_thickness": { "value": 10, "min": 6, "max": 20, "description": "板厚" },
+    "corner_radius": { "value": 10, "min": 2, "max": 20, "description": "板四角圆角半径" },
+    "piper_hole_d": { "value": 5.5, "min": 5.0, "max": 6.0, "description": "Piper M5 安装孔通径" },
+    "piper_half_pitch": { "value": 35, "min": 25, "max": 45, "description": "Piper 孔距 70 的一半" },
+    "center_hole_d": { "value": 30, "min": 15, "max": 45, "description": "中央走线/减重孔直径" },
+    "light_hole_d": { "value": 12, "min": 8, "max": 16, "description": "减重孔直径" },
+    "light_hole_x": { "value": 55, "min": 45, "max": 62, "description": "减重孔中心 X 坐标（±）" },
+    "light_hole_y": { "value": 27.5, "min": 20, "max": 32, "description": "减重孔中心 Y 坐标（±）" },
+    "rib_width": { "value": 4, "min": 3, "max": 6, "description": "导轨宽度" },
+    "rib_height": { "value": 3, "min": 2, "max": 5, "description": "导轨高度" },
+    "strap_y": { "value": 57, "min": 45, "max": 70, "description": "绑带中心线 Y 坐标（±），导轨位置由此推导" },
+    "rib_gap": { "value": 14, "min": 10, "max": 20, "description": "绑带中心到导轨中心的距离（绑带宽25 + 间隙3 = 28 净距的一半）" }
+  },
+  "features": [
+    {
+      "id": "plate",
+      "type": "extrude",
+      "profile": {
+        "shape": "rectangle",
+        "length": { "param": "plate_len_x" },
+        "width": { "param": "plate_wid_y" }
+      },
+      "plane_spec": { "plane": "XY" },
+      "distance": { "param": "plate_thickness" },
+      "mode": "new"
+    },
+    {
+      "id": "plate_fillet",
+      "type": "fillet",
+      "depends_on": ["plate"],
+      "radius": { "param": "corner_radius" },
+      "target": "plate",
+      "edges": "vertical"
+    },
+    {
+      "id": "rib_outer_pos",
+      "type": "extrude",
+      "profile": {
+        "shape": "rectangle",
+        "length": { "param": "plate_len_x" },
+        "width": { "param": "rib_width" },
+        "center": { "x": 0, "y": 71 }
+      },
+      "plane_spec": { "plane": "XY", "offset": { "param": "plate_thickness" } },
+      "distance": { "param": "rib_height" },
+      "mode": "add",
+      "target": "plate_fillet"
+    },
+    {
+      "id": "rib_inner_pos",
+      "type": "extrude",
+      "profile": {
+        "shape": "rectangle",
+        "length": { "param": "plate_len_x" },
+        "width": { "param": "rib_width" },
+        "center": { "x": 0, "y": 43 }
+      },
+      "plane_spec": { "plane": "XY", "offset": { "param": "plate_thickness" } },
+      "distance": { "param": "rib_height" },
+      "mode": "add",
+      "target": "rib_outer_pos"
+    },
+    {
+      "id": "rib_inner_neg",
+      "type": "extrude",
+      "profile": {
+        "shape": "rectangle",
+        "length": { "param": "plate_len_x" },
+        "width": { "param": "rib_width" },
+        "center": { "x": 0, "y": -43 }
+      },
+      "plane_spec": { "plane": "XY", "offset": { "param": "plate_thickness" } },
+      "distance": { "param": "rib_height" },
+      "mode": "add",
+      "target": "rib_inner_pos"
+    },
+    {
+      "id": "rib_outer_neg",
+      "type": "extrude",
+      "profile": {
+        "shape": "rectangle",
+        "length": { "param": "plate_len_x" },
+        "width": { "param": "rib_width" },
+        "center": { "x": 0, "y": -71 }
+      },
+      "plane_spec": { "plane": "XY", "offset": { "param": "plate_thickness" } },
+      "distance": { "param": "rib_height" },
+      "mode": "add",
+      "target": "rib_inner_neg"
+    },
+    {
+      "id": "piper_hole_1",
+      "type": "hole",
+      "depends_on": ["rib_outer_neg"],
+      "diameter": { "param": "piper_hole_d" },
+      "center": { "x": 35, "y": 35, "z": 5 },
+      "through": true,
+      "target": "rib_outer_neg"
+    },
+    {
+      "id": "piper_hole_2",
+      "type": "hole",
+      "depends_on": ["piper_hole_1"],
+      "diameter": { "param": "piper_hole_d" },
+      "center": { "x": -35, "y": 35, "z": 5 },
+      "through": true,
+      "target": "piper_hole_1"
+    },
+    {
+      "id": "piper_hole_3",
+      "type": "hole",
+      "depends_on": ["piper_hole_2"],
+      "diameter": { "param": "piper_hole_d" },
+      "center": { "x": 35, "y": -35, "z": 5 },
+      "through": true,
+      "target": "piper_hole_2"
+    },
+    {
+      "id": "piper_hole_4",
+      "type": "hole",
+      "depends_on": ["piper_hole_3"],
+      "diameter": { "param": "piper_hole_d" },
+      "center": { "x": -35, "y": -35, "z": 5 },
+      "through": true,
+      "target": "piper_hole_3"
+    },
+    {
+      "id": "center_hole",
+      "type": "hole",
+      "depends_on": ["piper_hole_4"],
+      "diameter": { "param": "center_hole_d" },
+      "center": { "x": 0, "y": 0, "z": 5 },
+      "through": true,
+      "target": "piper_hole_4"
+    },
+    {
+      "id": "light_hole_1",
+      "type": "hole",
+      "depends_on": ["center_hole"],
+      "diameter": { "param": "light_hole_d" },
+      "center": { "x": 55, "y": 27.5, "z": 5 },
+      "through": true,
+      "target": "center_hole"
+    },
+    {
+      "id": "light_hole_2",
+      "type": "hole",
+      "depends_on": ["light_hole_1"],
+      "diameter": { "param": "light_hole_d" },
+      "center": { "x": -55, "y": 27.5, "z": 5 },
+      "through": true,
+      "target": "light_hole_1"
+    },
+    {
+      "id": "light_hole_3",
+      "type": "hole",
+      "depends_on": ["light_hole_2"],
+      "diameter": { "param": "light_hole_d" },
+      "center": { "x": 55, "y": -27.5, "z": 5 },
+      "through": true,
+      "target": "light_hole_2"
+    },
+    {
+      "id": "light_hole_4",
+      "type": "hole",
+      "depends_on": ["light_hole_3"],
+      "diameter": { "param": "light_hole_d" },
+      "center": { "x": -55, "y": -27.5, "z": 5 },
+      "through": true,
+      "target": "light_hole_3"
+    }
+  ]
+}

@@ -1,0 +1,38 @@
+{
+  "version": "1.0",
+  "meta": {
+    "name": "box_with_hole",
+    "units": "mm",
+    "description": "第一阶段最小闭环的 IR 表达：60x40x20 盒子，中央偏移位置一个直径 5 的贯穿孔。"
+  },
+  "parameters": {
+    "box_length": { "value": 60, "min": 10, "max": 200, "description": "盒子 X 方向长度" },
+    "box_width": { "value": 40, "min": 10, "max": 200, "description": "盒子 Y 方向宽度" },
+    "box_height": { "value": 20, "min": 5, "max": 100, "description": "盒子 Z 方向高度" },
+    "hole_diameter": { "value": 5, "min": 1, "max": 20, "description": "贯穿孔直径" }
+  },
+  "features": [
+    {
+      "id": "base_box",
+      "type": "extrude",
+      "profile": {
+        "shape": "rectangle",
+        "length": { "param": "box_length" },
+        "width": { "param": "box_width" }
+      },
+      "plane_spec": { "plane": "XY" },
+      "distance": { "param": "box_height" },
+      "direction": "normal",
+      "mode": "new"
+    },
+    {
+      "id": "center_hole",
+      "type": "hole",
+      "depends_on": ["base_box"],
+      "diameter": { "param": "hole_diameter" },
+      "center": { "x": 15, "y": 10, "z": 10 },
+      "through": true,
+      "target": "base_box"
+    }
+  ]
+}

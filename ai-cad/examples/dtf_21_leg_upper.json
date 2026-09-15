@@ -1,0 +1,17 @@
+{
+  "version": "1.0",
+  "meta": {
+    "name": "dtf_21_leg_upper",
+    "units": "mm",
+    "description": "大腿段（铸铁灰）：240x160x220 方柱，顶缘倒角20。装配：上端 z 370（髋关节销 Ø80 位于 z330 两侧），下端 z150（膝关节）。4 实例。"
+  },
+  "parameters": {
+    "up_x": { "value": 240, "min": 180, "max": 300, "description": "大腿 X 厚" },
+    "up_y": { "value": 160, "min": 120, "max": 220, "description": "大腿 Y 宽" },
+    "up_h": { "value": 220, "min": 160, "max": 280, "description": "大腿高度" }
+  },
+  "features": [
+    { "id": "upper_leg", "type": "extrude", "profile": { "shape": "rectangle", "length": { "param": "up_x" }, "width": { "param": "up_y" } }, "plane_spec": { "plane": "XY" }, "distance": { "param": "up_h" }, "mode": "new" },
+    { "id": "upper_chamfer", "type": "chamfer", "depends_on": ["upper_leg"], "distance": 20, "target": "upper_leg", "edges": "top" }
+  ]
+}

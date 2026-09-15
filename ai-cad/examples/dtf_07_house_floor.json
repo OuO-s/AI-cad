@@ -1,0 +1,17 @@
+{
+  "version": "1.0",
+  "meta": {
+    "name": "dtf_07_house_floor",
+    "units": "mm",
+    "description": "茶室地板（深胡桃木）：1100x950x60，顶缘倒角8。装配时置于平台顶（局部 z0 对齐全局 z560），中心 (800,0)。"
+  },
+  "parameters": {
+    "floor_len": { "value": 1100, "min": 900, "max": 1300, "description": "地板 X 长度" },
+    "floor_wid": { "value": 950, "min": 800, "max": 1100, "description": "地板 Y 宽度" },
+    "floor_thk": { "value": 60, "min": 40, "max": 90, "description": "地板厚度" }
+  },
+  "features": [
+    { "id": "floor_board", "type": "extrude", "profile": { "shape": "rectangle", "length": { "param": "floor_len" }, "width": { "param": "floor_wid" } }, "plane_spec": { "plane": "XY" }, "distance": { "param": "floor_thk" }, "mode": "new" },
+    { "id": "floor_chamfer", "type": "chamfer", "depends_on": ["floor_board"], "distance": 8, "target": "floor_board", "edges": "top" }
+  ]
+}

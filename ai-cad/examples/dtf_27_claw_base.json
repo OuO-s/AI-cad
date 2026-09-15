@@ -1,0 +1,17 @@
+{
+  "version": "1.0",
+  "meta": {
+    "name": "dtf_27_claw_base",
+    "units": "mm",
+    "description": "可折叠爪爪座（铸铁灰）：200x190x30 方座，顶缘倒角6。装配：z 30..60（上接小腿下端），爪趾另配；折叠铰销（Y 向）装于 z45。4 实例。"
+  },
+  "parameters": {
+    "cb_x": { "value": 200, "min": 160, "max": 260, "description": "爪座 X 长" },
+    "cb_y": { "value": 190, "min": 150, "max": 240, "description": "爪座 Y 宽" },
+    "cb_h": { "value": 30, "min": 20, "max": 45, "description": "爪座高度" }
+  },
+  "features": [
+    { "id": "claw_base", "type": "extrude", "profile": { "shape": "rectangle", "length": { "param": "cb_x" }, "width": { "param": "cb_y" } }, "plane_spec": { "plane": "XY" }, "distance": { "param": "cb_h" }, "mode": "new" },
+    { "id": "claw_base_chamfer", "type": "chamfer", "depends_on": ["claw_base"], "distance": 6, "target": "claw_base", "edges": "top" }
+  ]
+}

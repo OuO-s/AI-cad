@@ -1,0 +1,85 @@
+{
+  "version": "1.0",
+  "meta": {
+    "name": "phone_stand",
+    "units": "mm",
+    "description": "L 形手机支架：底板 80x40x5，背板立于底板后缘（80 宽 x5 厚 x60 高），底板前部两个 M3 通孔（Ø3.4 通径），底板顶面边缘倒角 1mm。假设：用户未给尺寸，取常见桌面支架尺寸；M3 通孔按通径配合（细牙装配可改 Ø3.5）；孔中心距边缘 >=5mm。"
+  },
+  "parameters": {
+    "base_length": { "value": 80, "min": 40, "max": 200, "description": "底板 X 方向长度" },
+    "base_depth": { "value": 40, "min": 20, "max": 120, "description": "底板 Y 方向深度" },
+    "base_thickness": { "value": 5, "min": 2, "max": 15, "description": "底板厚度" },
+    "back_height": { "value": 60, "min": 20, "max": 150, "description": "背板高度" },
+    "back_thickness": { "value": 5, "min": 2, "max": 15, "description": "背板厚度" },
+    "m3_hole_diameter": { "value": 3.4, "min": 3.2, "max": 3.6, "description": "M3 通孔直径（通径配合）" },
+    "hole_offset_x": { "value": 25, "min": 10, "max": 35, "description": "孔中心距中心线 X 距离" },
+    "hole_offset_y": { "value": 10, "min": 5, "max": 15, "description": "孔中心距底板前缘 Y 距离" },
+    "chamfer_size": { "value": 1, "min": 0.5, "max": 3, "description": "底板顶面边缘倒角" }
+  },
+  "features": [
+    {
+      "id": "base",
+      "type": "extrude",
+      "profile": {
+        "shape": "rectangle",
+        "length": { "param": "base_length" },
+        "width": { "param": "base_depth" }
+      },
+      "plane_spec": { "plane": "XY" },
+      "distance": { "param": "base_thickness" },
+      "mode": "new"
+    },
+    {
+      "id": "base_chamfered",
+      "type": "chamfer",
+      "depends_on": ["base"],
+      "distance": { "param": "chamfer_size" },
+      "target": "base",
+      "edges": "top"
+    },
+    {
+      "id": "back_wall",
+      "type": "extrude",
+      "depends_on": ["base_chamfered"],
+      "profile": {
+        "shape": "rectangle",
+        "length": { "param": "base_length" },
+        "width": { "param": "back_thickness" },
+        "center": {
+          "x": 0,
+          "y": 17.5
+        }
+      },
+      "plane_spec": { "plane": "XY", "offset": { "param": "base_thickness" } },
+      "distance": { "param": "back_height" },
+      "mode": "add",
+      "target": "base_chamfered"
+    },
+    {
+      "id": "m3_hole_left",
+      "type": "hole",
+      "depends_on": ["back_wall"],
+      "diameter": { "param": "m3_hole_diameter" },
+      "center": {
+        "x": { "param": "hole_offset_x" },
+        "y": { "param": "hole_offset_y" },
+        "z": 2.5
+      },
+      "through": true,
+      "target": "back_wall"
+    },
+    {
+      "id": "m3_hole_right",
+      "type": "hole",
+      "depends_on": ["m3_hole_left"],
+      "diameter": { "param": "m3_hole_diameter" },
+      "center": {
+        "x": -25,
+        "y": { "param": "hole_offset_y" },
+        "z": 2.5
+      },
+      "through": true,
+      "target": "m3_hole_left"
+    }
+  ]
+}

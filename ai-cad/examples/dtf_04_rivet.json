@@ -1,0 +1,16 @@
+{
+  "version": "1.0",
+  "meta": {
+    "name": "dtf_04_rivet",
+    "units": "mm",
+    "description": "黄铜铆钉（古铜）：Ø46 圆柱高26，顶缘圆角12 形成半圆头。多实例布于鼓体顶面边缘（r=830 一圈12颗）与平台前缘（5颗）。"
+  },
+  "parameters": {
+    "rivet_dia": { "value": 46, "min": 30, "max": 70, "description": "铆钉直径" },
+    "rivet_height": { "value": 26, "min": 16, "max": 45, "description": "铆钉杆高" }
+  },
+  "features": [
+    { "id": "rivet_body", "type": "extrude", "profile": { "shape": "circle", "diameter": { "param": "rivet_dia" } }, "plane_spec": { "plane": "XY" }, "distance": { "param": "rivet_height" }, "mode": "new" },
+    { "id": "rivet_head_fillet", "type": "fillet", "depends_on": ["rivet_body"], "radius": 12, "target": "rivet_body", "edges": "top" }
+  ]
+}

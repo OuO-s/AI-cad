@@ -1,0 +1,18 @@
+{
+  "version": "1.0",
+  "meta": {
+    "name": "dtf_16_smoke_pipe",
+    "units": "mm",
+    "description": "头部烟管（古铜）：立管 Ø130 高370 + 两道箍环 Ø180x30 + 顶帽 Ø210x25。局部底 z0 落于头部顶面（全局 z860），位于 (1620,0)。"
+  },
+  "parameters": {
+    "pipe_dia": { "value": 130, "min": 100, "max": 170, "description": "烟管直径" },
+    "pipe_h": { "value": 370, "min": 280, "max": 480, "description": "烟管高度" }
+  },
+  "features": [
+    { "id": "pipe", "type": "extrude", "profile": { "shape": "circle", "diameter": { "param": "pipe_dia" } }, "plane_spec": { "plane": "XY" }, "distance": { "param": "pipe_h" }, "mode": "new" },
+    { "id": "collar_1", "type": "extrude", "depends_on": ["pipe"], "profile": { "shape": "circle", "diameter": 180 }, "plane_spec": { "plane": "XY", "offset": 60 }, "distance": 30, "mode": "add", "target": "pipe" },
+    { "id": "collar_2", "type": "extrude", "depends_on": ["collar_1"], "profile": { "shape": "circle", "diameter": 180 }, "plane_spec": { "plane": "XY", "offset": 200 }, "distance": 30, "mode": "add", "target": "collar_1" },
+    { "id": "pipe_cap", "type": "extrude", "depends_on": ["collar_2"], "profile": { "shape": "circle", "diameter": 210 }, "plane_spec": { "plane": "XY", "offset": 370 }, "distance": 25, "mode": "add", "target": "collar_2" }
+  ]
+}

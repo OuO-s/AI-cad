@@ -1,0 +1,17 @@
+{
+  "version": "1.0",
+  "meta": {
+    "name": "dtf_32_boiler",
+    "units": "mm",
+    "description": "茶炉锅炉体（铸铁灰）：Ø480x500 立式锅炉，顶缘圆角80；前脸炉门箱 80x220x220（局部 x 230..310，z 80..300）。装配于茶室内 (900,0)，z 620..1120，从推拉门方向可见。"
+  },
+  "parameters": {
+    "boiler_dia": { "value": 480, "min": 380, "max": 600, "description": "锅炉直径" },
+    "boiler_h": { "value": 500, "min": 400, "max": 620, "description": "锅炉高度" }
+  },
+  "features": [
+    { "id": "boiler_drum", "type": "extrude", "profile": { "shape": "circle", "diameter": { "param": "boiler_dia" } }, "plane_spec": { "plane": "XY" }, "distance": { "param": "boiler_h" }, "mode": "new" },
+    { "id": "boiler_fillet", "type": "fillet", "depends_on": ["boiler_drum"], "radius": 80, "target": "boiler_drum", "edges": "top" },
+    { "id": "firebox", "type": "extrude", "depends_on": ["boiler_fillet"], "profile": { "shape": "rectangle", "length": 80, "width": 220, "center": { "x": 270, "y": 190 } }, "plane_spec": { "plane": "XZ" }, "distance": 220, "direction": "symmetric", "mode": "add", "target": "boiler_fillet" }
+  ]
+}

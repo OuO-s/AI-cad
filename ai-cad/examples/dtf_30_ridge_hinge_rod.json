@@ -1,0 +1,16 @@
+{
+  "version": "1.0",
+  "meta": {
+    "name": "dtf_30_ridge_hinge_rod",
+    "units": "mm",
+    "description": "屋顶脊线铰链杆（古铜）：Ø56 圆杆沿 X 长1140，两端倒角8。装配于两半屋顶的开合缝中（y=0, z1760），开合旋转轴 = X。1 实例。"
+  },
+  "parameters": {
+    "rod_dia": { "value": 56, "min": 40, "max": 70, "description": "铰链杆直径" },
+    "rod_len": { "value": 1140, "min": 950, "max": 1300, "description": "铰链杆长度" }
+  },
+  "features": [
+    { "id": "hinge_rod", "type": "extrude", "profile": { "shape": "circle", "diameter": { "param": "rod_dia" } }, "plane_spec": { "plane": "YZ" }, "distance": { "param": "rod_len" }, "mode": "new" },
+    { "id": "hinge_rod_chamfer", "type": "chamfer", "depends_on": ["hinge_rod"], "distance": 8, "target": "hinge_rod", "edges": "all" }
+  ]
+}

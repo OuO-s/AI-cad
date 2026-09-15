@@ -1,0 +1,38 @@
+{
+  "version": "1.0",
+  "meta": {
+    "name": "phone_stand_modified",
+    "units": "mm",
+    "description": "演示 import_step：导入现有 phone_stand.step，(1) 在底板中央打 Ø8 贯穿孔（基于 inspect 报告：底板 z∈[0,5]，占满 80×40 包围盒）；(2) 在底板 (25,-10) 处增加 Ø10×3 圆凸台。所有尺寸参数化。"
+  },
+  "parameters": {
+    "hole_d": { "value": 8.0, "min": 3.0, "max": 20.0, "description": "中央通孔直径" },
+    "boss_d": { "value": 10.0, "min": 4.0, "max": 30.0, "description": "新增凸台直径" },
+    "boss_h": { "value": 3.0, "min": 1.0, "max": 10.0, "description": "新增凸台高度" }
+  },
+  "features": [
+    {
+      "id": "base",
+      "type": "import_step",
+      "path": "../output/phone_stand.step"
+    },
+    {
+      "id": "center_hole",
+      "type": "hole",
+      "target": "base",
+      "diameter": { "param": "hole_d" },
+      "center": { "x": 0, "y": 0, "z": 0 },
+      "through": true
+    },
+    {
+      "id": "mount_boss",
+      "type": "extrude",
+      "target": "center_hole",
+      "mode": "add",
+      "profile": { "shape": "circle", "diameter": { "param": "boss_d" }, "center": { "x": 25, "y": -10 } },
+      "plane_spec": { "plane": "XY", "offset": 5 },
+      "distance": { "param": "boss_h" },
+      "direction": "normal"
+    }
+  ]
+}

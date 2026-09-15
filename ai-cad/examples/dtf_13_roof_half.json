@@ -1,0 +1,22 @@
+{
+  "version": "1.0",
+  "meta": {
+    "name": "dtf_13_roof_half",
+    "units": "mm",
+    "description": "青瓦可开合屋顶半侧（墨绿）：局部坐标 x -570..570（沿脊线），y 30..565（脊线在 y=+30 一侧留 60mm 开合缝），檐口封板 535x93 + 四级阶状瓦板（每级 145 宽、62 厚、错叠15），檐口封板底缘倒角12；烟囱通过口：局部 x -350..-150、y 250..470 贯通缺口。左半侧由右半侧镜像得到。整体脊线处预留铰链轴（X 向）实现开合。"
+  },
+  "parameters": {
+    "roof_len": { "value": 1140, "min": 950, "max": 1300, "description": "屋顶 X 长度" },
+    "step_w": { "value": 145, "min": 110, "max": 180, "description": "每级瓦板宽度" },
+    "step_h": { "value": 62, "min": 45, "max": 80, "description": "每级瓦板厚度" }
+  },
+  "features": [
+    { "id": "eaves_fascia", "type": "extrude", "profile": { "shape": "rectangle", "length": { "param": "roof_len" }, "width": 535, "center": { "x": 0, "y": 297.5 } }, "plane_spec": { "plane": "XY" }, "distance": 93, "mode": "new" },
+    { "id": "fascia_chamfer", "type": "chamfer", "depends_on": ["eaves_fascia"], "distance": 12, "target": "eaves_fascia", "edges": "bottom" },
+    { "id": "tile_step_0", "type": "extrude", "depends_on": ["fascia_chamfer"], "profile": { "shape": "rectangle", "length": { "param": "roof_len" }, "width": { "param": "step_w" }, "center": { "x": 0, "y": 102.5 } }, "plane_spec": { "plane": "XY", "offset": 279 }, "distance": { "param": "step_h" }, "mode": "add", "target": "fascia_chamfer" },
+    { "id": "tile_step_1", "type": "extrude", "depends_on": ["tile_step_0"], "profile": { "shape": "rectangle", "length": { "param": "roof_len" }, "width": { "param": "step_w" }, "center": { "x": 0, "y": 232.5 } }, "plane_spec": { "plane": "XY", "offset": 217 }, "distance": { "param": "step_h" }, "mode": "add", "target": "tile_step_0" },
+    { "id": "tile_step_2", "type": "extrude", "depends_on": ["tile_step_1"], "profile": { "shape": "rectangle", "length": { "param": "roof_len" }, "width": { "param": "step_w" }, "center": { "x": 0, "y": 362.5 } }, "plane_spec": { "plane": "XY", "offset": 155 }, "distance": { "param": "step_h" }, "mode": "add", "target": "tile_step_1" },
+    { "id": "tile_step_3", "type": "extrude", "depends_on": ["tile_step_2"], "profile": { "shape": "rectangle", "length": { "param": "roof_len" }, "width": { "param": "step_w" }, "center": { "x": 0, "y": 492.5 } }, "plane_spec": { "plane": "XY", "offset": 93 }, "distance": { "param": "step_h" }, "mode": "add", "target": "tile_step_2" },
+    { "id": "chimney_notch", "type": "extrude", "depends_on": ["tile_step_3"], "profile": { "shape": "rectangle", "length": 200, "width": 280, "center": { "x": -250, "y": 340 } }, "plane_spec": { "plane": "XY" }, "distance": 360, "mode": "subtract", "target": "tile_step_3" }
+  ]
+}

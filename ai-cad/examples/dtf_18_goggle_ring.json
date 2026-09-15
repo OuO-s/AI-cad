@@ -1,0 +1,17 @@
+{
+  "version": "1.0",
+  "meta": {
+    "name": "dtf_18_goggle_ring",
+    "units": "mm",
+    "description": "黄铜护目镜镜圈（古铜）：Ø230 圈体厚60（YZ 面拉伸沿 +X），内孔 Ø150（镜片另配，留 1mm 径向间隙）。2 实例贴于头前脸 (1720..1780, ±170, 740)。"
+  },
+  "parameters": {
+    "ring_od": { "value": 230, "min": 180, "max": 280, "description": "镜圈外径" },
+    "ring_id": { "value": 150, "min": 120, "max": 180, "description": "镜圈内孔径" },
+    "ring_thk": { "value": 60, "min": 40, "max": 80, "description": "镜圈厚度（X）" }
+  },
+  "features": [
+    { "id": "g_ring", "type": "extrude", "profile": { "shape": "circle", "diameter": { "param": "ring_od" } }, "plane_spec": { "plane": "YZ" }, "distance": { "param": "ring_thk" }, "mode": "new" },
+    { "id": "g_ring_bore", "type": "extrude", "depends_on": ["g_ring"], "profile": { "shape": "circle", "diameter": { "param": "ring_id" } }, "plane_spec": { "plane": "YZ" }, "distance": { "param": "ring_thk" }, "mode": "subtract", "target": "g_ring" }
+  ]
+}

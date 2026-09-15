@@ -1,0 +1,15 @@
+{
+  "version": "1.0",
+  "meta": {
+    "name": "dtf_29_claw_pin",
+    "units": "mm",
+    "description": "爪折叠铰销（古铜）：Ø45 圆柱销沿 Y 长55。装配于爪座两侧（z45），折叠旋转轴 = Y。4 爪 x 2 侧 = 8 实例。"
+  },
+  "parameters": {
+    "pin_dia": { "value": 45, "min": 30, "max": 60, "description": "铰销直径" },
+    "pin_len": { "value": 55, "min": 40, "max": 75, "description": "铰销长度" }
+  },
+  "features": [
+    { "id": "claw_pin", "type": "extrude", "profile": { "shape": "circle", "diameter": { "param": "pin_dia" } }, "plane_spec": { "plane": "XZ" }, "distance": { "param": "pin_len" }, "direction": "symmetric", "mode": "new" }
+  ]
+}

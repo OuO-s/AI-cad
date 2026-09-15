@@ -1,0 +1,15 @@
+{
+  "version": "1.0",
+  "meta": {
+    "name": "dtf_25_piston_rod",
+    "units": "mm",
+    "description": "液压活塞杆（铸铁灰）：Ø60x130 圆杆。装配：z 410..540，上接机身侧支架、下接油缸上端盖。4 实例。"
+  },
+  "parameters": {
+    "rod_dia": { "value": 60, "min": 45, "max": 80, "description": "活塞杆直径" },
+    "rod_len": { "value": 130, "min": 90, "max": 180, "description": "活塞杆长度" }
+  },
+  "features": [
+    { "id": "piston_rod", "type": "extrude", "profile": { "shape": "circle", "diameter": { "param": "rod_dia" } }, "plane_spec": { "plane": "XY" }, "distance": { "param": "rod_len" }, "mode": "new" }
+  ]
+}

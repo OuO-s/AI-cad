@@ -1,0 +1,16 @@
+{
+  "version": "1.0",
+  "meta": {
+    "name": "dtf_11_paper_panel",
+    "units": "mm",
+    "description": "和纸窗纸板（米白）：316x416x20 竖直薄板（XZ 面拉伸，法向 -Y）。装于侧墙/后墙窗洞内侧，四周留 2mm 间隙。5 实例。"
+  },
+  "parameters": {
+    "paper_w": { "value": 316, "min": 260, "max": 380, "description": "纸板宽（留2mm间隙）" },
+    "paper_h": { "value": 416, "min": 340, "max": 480, "description": "纸板高（留2mm间隙）" },
+    "paper_thk": { "value": 20, "min": 10, "max": 30, "description": "纸板厚" }
+  },
+  "features": [
+    { "id": "paper", "type": "extrude", "profile": { "shape": "rectangle", "length": { "param": "paper_w" }, "width": { "param": "paper_h" } }, "plane_spec": { "plane": "XZ" }, "distance": { "param": "paper_thk" }, "direction": "symmetric", "mode": "new" }
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "version": "1.0",
+  "meta": {
+    "name": "dtf_08_house_post",
+    "units": "mm",
+    "description": "茶室角柱（深胡桃木）：100x100 方柱高820，顶缘倒角12。4 实例位于 (300,±425) 与 (1300,±425)，z 620..1440。"
+  },
+  "parameters": {
+    "post_size": { "value": 100, "min": 70, "max": 140, "description": "柱截面边长" },
+    "post_height": { "value": 820, "min": 600, "max": 1000, "description": "柱高" }
+  },
+  "features": [
+    { "id": "post", "type": "extrude", "profile": { "shape": "rectangle", "length": { "param": "post_size" }, "width": { "param": "post_size" } }, "plane_spec": { "plane": "XY" }, "distance": { "param": "post_height" }, "mode": "new" },
+    { "id": "post_chamfer", "type": "chamfer", "depends_on": ["post"], "distance": 12, "target": "post", "edges": "top" }
+  ]
+}

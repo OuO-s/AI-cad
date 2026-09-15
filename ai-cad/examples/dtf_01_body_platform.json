@@ -1,0 +1,28 @@
+{
+  "version": "1.0",
+  "meta": {
+    "name": "dtf_01_body_platform",
+    "units": "mm",
+    "description": "龙龟主体平台（铸铁灰）：主板 3000x2100x180（z 380..560），顶部倒角20；下裙板 2600x1200x60（z 320..380，避开腿部区域 y>600），底部倒角15；四条腿位置各两块吊挂蹄形座（clevis，300x50x70，z 310..380），用于安装髋关节销。假设：平台厚180、离地380 由整体高度预算 2200 推得。"
+  },
+  "parameters": {
+    "plat_length": { "value": 3000, "min": 2400, "max": 3400, "description": "平台 X 长度" },
+    "plat_width": { "value": 2100, "min": 1700, "max": 2400, "description": "平台 Y 宽度" },
+    "plat_thk": { "value": 180, "min": 120, "max": 300, "description": "平台厚度" },
+    "skirt_thk": { "value": 60, "min": 40, "max": 100, "description": "裙板厚度" }
+  },
+  "features": [
+    { "id": "plat_main", "type": "extrude", "profile": { "shape": "rectangle", "length": { "param": "plat_length" }, "width": { "param": "plat_width" } }, "plane_spec": { "plane": "XY", "offset": 380 }, "distance": { "param": "plat_thk" }, "mode": "new" },
+    { "id": "plat_chamfer", "type": "chamfer", "depends_on": ["plat_main"], "distance": 20, "target": "plat_main", "edges": "top" },
+    { "id": "plat_skirt", "type": "extrude", "depends_on": ["plat_chamfer"], "profile": { "shape": "rectangle", "length": 2600, "width": 1200 }, "plane_spec": { "plane": "XY", "offset": 320 }, "distance": { "param": "skirt_thk" }, "mode": "add", "target": "plat_chamfer" },
+    { "id": "plat_skirt_chamfer", "type": "chamfer", "depends_on": ["plat_skirt"], "distance": 15, "target": "plat_skirt", "edges": "bottom" },
+    { "id": "clevis_fr_in", "type": "extrude", "depends_on": ["plat_skirt_chamfer"], "profile": { "shape": "rectangle", "length": 300, "width": 50, "center": { "x": 950, "y": 665 } }, "plane_spec": { "plane": "XY", "offset": 310 }, "distance": 70, "mode": "add", "target": "plat_skirt_chamfer" },
+    { "id": "clevis_fr_out", "type": "extrude", "depends_on": ["clevis_fr_in"], "profile": { "shape": "rectangle", "length": 300, "width": 50, "center": { "x": 950, "y": 975 } }, "plane_spec": { "plane": "XY", "offset": 310 }, "distance": 70, "mode": "add", "target": "clevis_fr_in" },
+    { "id": "clevis_fl_in", "type": "extrude", "depends_on": ["clevis_fr_out"], "profile": { "shape": "rectangle", "length": 300, "width": 50, "center": { "x": 950, "y": -665 } }, "plane_spec": { "plane": "XY", "offset": 310 }, "distance": 70, "mode": "add", "target": "clevis_fr_out" },
+    { "id": "clevis_fl_out", "type": "extrude", "depends_on": ["clevis_fl_in"], "profile": { "shape": "rectangle", "length": 300, "width": 50, "center": { "x": 950, "y": -975 } }, "plane_spec": { "plane": "XY", "offset": 310 }, "distance": 70, "mode": "add", "target": "clevis_fl_in" },
+    { "id": "clevis_rr_in", "type": "extrude", "depends_on": ["clevis_fl_out"], "profile": { "shape": "rectangle", "length": 300, "width": 50, "center": { "x": -1150, "y": 665 } }, "plane_spec": { "plane": "XY", "offset": 310 }, "distance": 70, "mode": "add", "target": "clevis_fl_out" },
+    { "id": "clevis_rr_out", "type": "extrude", "depends_on": ["clevis_rr_in"], "profile": { "shape": "rectangle", "length": 300, "width": 50, "center": { "x": -1150, "y": 975 } }, "plane_spec": { "plane": "XY", "offset": 310 }, "distance": 70, "mode": "add", "target": "clevis_rr_in" },
+    { "id": "clevis_rl_in", "type": "extrude", "depends_on": ["clevis_rr_out"], "profile": { "shape": "rectangle", "length": 300, "width": 50, "center": { "x": -1150, "y": -665 } }, "plane_spec": { "plane": "XY", "offset": 310 }, "distance": 70, "mode": "add", "target": "clevis_rr_out" },
+    { "id": "clevis_rl_out", "type": "extrude", "depends_on": ["clevis_rl_in"], "profile": { "shape": "rectangle", "length": 300, "width": 50, "center": { "x": -1150, "y": -975 } }, "plane_spec": { "plane": "XY", "offset": 310 }, "distance": 70, "mode": "add", "target": "clevis_rl_in" }
+  ]
+}

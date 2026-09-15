@@ -1,0 +1,15 @@
+{
+  "version": "1.0",
+  "meta": {
+    "name": "dtf_19_goggle_lens",
+    "units": "mm",
+    "description": "护目镜镜片（米白）：Ø148x8 圆片（YZ 面拉伸），装于镜圈孔中（径向 1mm 间隙）。2 实例。"
+  },
+  "parameters": {
+    "lens_dia": { "value": 148, "min": 118, "max": 178, "description": "镜片直径" },
+    "lens_thk": { "value": 8, "min": 5, "max": 12, "description": "镜片厚" }
+  },
+  "features": [
+    { "id": "lens", "type": "extrude", "profile": { "shape": "circle", "diameter": { "param": "lens_dia" } }, "plane_spec": { "plane": "YZ" }, "distance": { "param": "lens_thk" }, "mode": "new" }
+  ]
+}

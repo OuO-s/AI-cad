@@ -1,0 +1,17 @@
+{
+  "version": "1.0",
+  "meta": {
+    "name": "dtf_12_shoji_door",
+    "units": "mm",
+    "description": "朱红推拉门板（朱红）：520x780x35 竖直板（YZ 面拉伸沿 +X），顶缘倒角8。两实例装于 x=1220 / 1265 两条轨道（前后错位）。"
+  },
+  "parameters": {
+    "door_w": { "value": 520, "min": 400, "max": 640, "description": "门板宽（Y）" },
+    "door_h": { "value": 780, "min": 600, "max": 950, "description": "门板高" },
+    "door_thk": { "value": 35, "min": 25, "max": 50, "description": "门板厚（X）" }
+  },
+  "features": [
+    { "id": "door", "type": "extrude", "profile": { "shape": "rectangle", "length": { "param": "door_w" }, "width": { "param": "door_h" } }, "plane_spec": { "plane": "YZ" }, "distance": { "param": "door_thk" }, "mode": "new" },
+    { "id": "door_chamfer", "type": "chamfer", "depends_on": ["door"], "distance": 8, "target": "door", "edges": "top" }
+  ]
+}

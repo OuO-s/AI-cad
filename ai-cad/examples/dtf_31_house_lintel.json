@@ -1,0 +1,17 @@
+{
+  "version": "1.0",
+  "meta": {
+    "name": "dtf_31_house_lintel",
+    "units": "mm",
+    "description": "茶室门楣（深胡桃木）：90x740x40 横梁，顶缘倒角6。装配于前柱之间顶部 (1260..1350, y ±370, z 1400..1440)。"
+  },
+  "parameters": {
+    "lintel_x": { "value": 90, "min": 70, "max": 120, "description": "门楣 X 厚" },
+    "lintel_y": { "value": 740, "min": 600, "max": 860, "description": "门楣 Y 长" },
+    "lintel_h": { "value": 40, "min": 30, "max": 60, "description": "门楣高度" }
+  },
+  "features": [
+    { "id": "lintel", "type": "extrude", "profile": { "shape": "rectangle", "length": { "param": "lintel_x" }, "width": { "param": "lintel_y" } }, "plane_spec": { "plane": "XY" }, "distance": { "param": "lintel_h" }, "mode": "new" },
+    { "id": "lintel_chamfer", "type": "chamfer", "depends_on": ["lintel"], "distance": 6, "target": "lintel", "edges": "top" }
+  ]
+}

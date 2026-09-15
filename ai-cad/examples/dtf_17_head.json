@@ -1,0 +1,20 @@
+{
+  "version": "1.0",
+  "meta": {
+    "name": "dtf_17_head",
+    "units": "mm",
+    "description": "龙龟头部总成（铸铁灰）：颈圆 Ø420 沿 X 长120（局部 x 0..120，中心 z470）+ 头箱 250(x)x640(y)x380(z)（局部 x 120..370，y ±320，z 480..860），顶缘倒角40。局部原点对应全局 (1350,0,0)。"
+  },
+  "parameters": {
+    "neck_dia": { "value": 420, "min": 320, "max": 520, "description": "颈部直径" },
+    "neck_len": { "value": 120, "min": 80, "max": 200, "description": "颈长（X）" },
+    "head_len": { "value": 250, "min": 200, "max": 340, "description": "头箱 X 长度" },
+    "head_wid": { "value": 640, "min": 520, "max": 760, "description": "头箱 Y 宽度" },
+    "head_h": { "value": 380, "min": 300, "max": 460, "description": "头箱 Z 高度" }
+  },
+  "features": [
+    { "id": "neck", "type": "extrude", "profile": { "shape": "circle", "diameter": { "param": "neck_dia" }, "center": { "x": 0, "y": 470 } }, "plane_spec": { "plane": "YZ" }, "distance": { "param": "neck_len" }, "mode": "new" },
+    { "id": "head_box", "type": "extrude", "depends_on": ["neck"], "profile": { "shape": "rectangle", "length": { "param": "head_len" }, "width": { "param": "head_h" }, "center": { "x": 245, "y": 670 } }, "plane_spec": { "plane": "XZ" }, "distance": { "param": "head_wid" }, "direction": "symmetric", "mode": "add", "target": "neck" },
+    { "id": "head_chamfer", "type": "chamfer", "depends_on": ["head_box"], "distance": 40, "target": "head_box", "edges": "top" }
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "version": "1.0",
+  "meta": {
+    "name": "dtf_09_house_wall_side",
+    "units": "mm",
+    "description": "茶室侧墙木框板（深胡桃木）：900x40x820，两个 320x420 窗洞（局部 x=±230，z 200..620），纸窗另配。2 实例装于 y=±455。"
+  },
+  "parameters": {
+    "wall_len": { "value": 900, "min": 700, "max": 1100, "description": "墙板长度" },
+    "wall_thk": { "value": 40, "min": 25, "max": 60, "description": "墙板厚度" },
+    "wall_height": { "value": 820, "min": 600, "max": 1000, "description": "墙板高度" },
+    "win_w": { "value": 320, "min": 240, "max": 400, "description": "窗洞宽" },
+    "win_h": { "value": 420, "min": 320, "max": 520, "description": "窗洞高" }
+  },
+  "features": [
+    { "id": "side_wall", "type": "extrude", "profile": { "shape": "rectangle", "length": { "param": "wall_len" }, "width": { "param": "wall_thk" } }, "plane_spec": { "plane": "XY" }, "distance": { "param": "wall_height" }, "mode": "new" },
+    { "id": "win_cut_1", "type": "extrude", "depends_on": ["side_wall"], "profile": { "shape": "rectangle", "length": { "param": "win_w" }, "width": 70, "center": { "x": -230, "y": 0 } }, "plane_spec": { "plane": "XY", "offset": 200 }, "distance": { "param": "win_h" }, "mode": "subtract", "target": "side_wall" },
+    { "id": "win_cut_2", "type": "extrude", "depends_on": ["win_cut_1"], "profile": { "shape": "rectangle", "length": { "param": "win_w" }, "width": 70, "center": { "x": 230, "y": 0 } }, "plane_spec": { "plane": "XY", "offset": 200 }, "distance": { "param": "win_h" }, "mode": "subtract", "target": "win_cut_1" }
+  ]
+}

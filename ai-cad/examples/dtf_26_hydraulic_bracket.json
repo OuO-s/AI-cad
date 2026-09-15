@@ -1,0 +1,17 @@
+{
+  "version": "1.0",
+  "meta": {
+    "name": "dtf_26_hydraulic_bracket",
+    "units": "mm",
+    "description": "液压支架（铸铁灰）：160x100x60 方块，顶缘倒角10。装配：贴平台侧面（y 1050..1150），z 540..600，活塞杆上端支座。右4实例；左侧用镜像件。"
+  },
+  "parameters": {
+    "br_len": { "value": 160, "min": 120, "max": 220, "description": "支架 X 长" },
+    "br_wid": { "value": 100, "min": 80, "max": 140, "description": "支架 Y 宽" },
+    "br_h": { "value": 60, "min": 40, "max": 90, "description": "支架高度" }
+  },
+  "features": [
+    { "id": "hyd_bracket", "type": "extrude", "profile": { "shape": "rectangle", "length": { "param": "br_len" }, "width": { "param": "br_wid" } }, "plane_spec": { "plane": "XY" }, "distance": { "param": "br_h" }, "mode": "new" },
+    { "id": "hyd_bracket_chamfer", "type": "chamfer", "depends_on": ["hyd_bracket"], "distance": 10, "target": "hyd_bracket", "edges": "top" }
+  ]
+}

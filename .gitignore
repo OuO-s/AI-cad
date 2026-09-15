@@ -1,0 +1,17 @@
+# 生成物 / 缓存
+ai-cad/output/
+**/__pycache__/
+.pytest_cache/
+pytest-cache-files-*/
+
+# 离线 wheel 缓存（体积大，另行拷贝，见 deploy/DEPLOY.md §5 T1）
+ai-cad/.wheels/
+ai-cad/.wheels-full/
+
+# 第三方参考仓库（自带 .git，作为独立仓库存在）
+HiCAD/
+
+# 会话杂项截图
+*.png
+!ai-cad/docs/**/*.png
+!ai-cad/deploy/**/*.png

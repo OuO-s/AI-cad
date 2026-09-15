@@ -1,0 +1,17 @@
+{
+  "version": "1.0",
+  "meta": {
+    "name": "dtf_06_gear_small",
+    "units": "mm",
+    "description": "小齿轮（铸铁灰）：12 齿近似（正12边形外接圆Ø300），厚55，中心 Ø60 通孔。装配时立放在平台顶面（轴线 Z）。"
+  },
+  "parameters": {
+    "gear_dia": { "value": 300, "min": 200, "max": 400, "description": "齿轮外接圆直径" },
+    "gear_thk": { "value": 55, "min": 35, "max": 80, "description": "齿轮厚度" },
+    "bore_dia": { "value": 60, "min": 40, "max": 80, "description": "中心孔径" }
+  },
+  "features": [
+    { "id": "gear_blank", "type": "extrude", "profile": { "shape": "polygon", "sides": 12, "circumscribed_radius": 150 }, "plane_spec": { "plane": "XY" }, "distance": { "param": "gear_thk" }, "mode": "new" },
+    { "id": "gear_bore", "type": "hole", "depends_on": ["gear_blank"], "diameter": { "param": "bore_dia" }, "center": { "x": 0, "y": 0, "z": 27 }, "through": true, "target": "gear_blank" }
+  ]
+}
