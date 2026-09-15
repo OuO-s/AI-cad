@@ -30,9 +30,11 @@ def norm(name: str) -> str:
 
 
 def parse_requires(dist) -> list[str]:
-    """从已装 dist 的 metadata 提取依赖名（忽略环境标记不满足的项交给镜像兜底）。"""
+    """从已装 dist 的 metadata 提取必装依赖名（跳过 extra==... 的可选项）。"""
     names = []
     for req in (dist.requires or []):
+        if "extra ==" in req:
+            continue  # 可选extras（dev/doc/test），不进离线包
         m = re.match(r"([A-Za-z0-9._-]+)", req)
         if m:
             names.append(norm(m.group(1)))

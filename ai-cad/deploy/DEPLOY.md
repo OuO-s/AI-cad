@@ -122,7 +122,7 @@ skill 会自动触发，流程：DSH 产 `examples\<name>.json` → `validate_ir
 
 | # | 症状 | 处置 |
 |---|------|------|
-| T1 | pip 装不上（无外网/代理） | 有网机器：`python scripts\download_wheels.py`；把 `.wheels\` 整目录拷来：`pip install --no-index --find-links .wheels build123d jsonschema pytest` |
+| T1 | pip 装不上（无外网/代理） | 部署 zip 默认**已内置** `.wheels-full\`（59 个 wheel ≈112MB，含 build123d+OCP 全依赖，`pack.ps1 -NoWheels` 可剔除）；`install.ps1` 在线失败会自动切换离线安装。手动命令：`pip install --no-index --find-links <解压目录>\ai-cad\.wheels-full -r deploy\requirements.txt`。重新生成 wheel 包：`python scripts\download_wheels_full.py`（走清华镜像，绕开会挂起的 pip 网络栈） |
 | T2 | 中文输出乱码 | 执行前 `$env:PYTHONIOENCODING='utf-8'`（GBK 控制台） |
 | T3 | 9100 离线但 Fusion 开着 | Fusion 实用程序→ADD-INS 里手动加载 `%APPDATA%\...\AddIns\Fusion MCP Addin`；确认 `.manifest` 内 `runOnStartup` |
 | T4 | DSH 没挂出 mcp__fusion__* 工具 | 属正常设计：Fusion 没开时静默重试。确认 `cordis.patch.yml` 里有 mcp-fusion 条目；等重连或重启 DSH；急需就用 §4.3 的 fusion_rpc.ps1 直连 |

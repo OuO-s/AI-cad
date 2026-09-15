@@ -5,13 +5,15 @@
 #>
 [CmdletBinding()]
 param(
-    [string]$OutZip = "$env:USERPROFILE\Desktop\ai-cad-deploy.zip"
+    [string]$OutZip = "$env:USERPROFILE\Desktop\ai-cad-deploy.zip",
+    [switch]$NoWheels   # 不打包 .wheels-full（默认打包，含 112MB 离线依赖，目标机可全离线安装）
 )
 $ErrorActionPreference = 'Stop'
 $deployDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $cadRoot   = Split-Path -Parent $deployDir
 
 $exclude = @('__pycache__', '.pytest_cache', 'output', 'pytest-cache-files-*')
+if ($NoWheels) { $exclude += '.wheels', '.wheels-full' }
 $files = Get-ChildItem -Recurse -File $cadRoot -ErrorAction SilentlyContinue | Where-Object {
     $rel = $_.FullName.Substring($cadRoot.Length + 1)
     -not ($exclude | Where-Object { $rel -like "*$_*" })

@@ -33,7 +33,15 @@ if (-not $SkipPython) {
         else {
             & python -m pip install -r (Join-Path $deployDir 'requirements.txt')
             if ($LASTEXITCODE -ne 0) {
-                Write-Warning "pip 在线安装失败（网络受限？）。离线方案：`n  在有网机器上: python $cadRoot\scripts\download_wheels.py`n  把整个 .wheels 目录拷过来后:`n  pip install --no-index --find-links $cadRoot\.wheels build123d jsonschema pytest"
+                $wf = Join-Path $cadRoot '.wheels-full'
+                if (Test-Path (Join-Path $wf 'build123d-0.11.1-py3-none-any.whl')) {
+                    Write-Host "  在线安装失败，改用离线 wheel 包($wf)..." -ForegroundColor Yellow
+                    & python -m pip install --no-index --find-links $wf -r (Join-Path $deployDir 'requirements.txt')
+                    if ($LASTEXITCODE -eq 0) { Write-Host "  Python 依赖 OK（离线）" -ForegroundColor Green }
+                    else { Write-Warning "  离线安装也失败，检查 python/pip 环境" }
+                } else {
+                    Write-Warning "pip 在线安装失败且无离线 wheel 包(.wheels-full)。离线方案：`n  在有网机器上: python $cadRoot\scripts\download_wheels_full.py`n  把整个 .wheels-full 目录拷过来后:`n  pip install --no-index --find-links $cadRoot\.wheels-full -r $($deployDir)\requirements.txt"
+                }
             } else { Write-Host "  Python 依赖 OK" -ForegroundColor Green }
         }
     }
