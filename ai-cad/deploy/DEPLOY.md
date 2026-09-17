@@ -133,7 +133,23 @@ skill 会自动触发，流程：DSH 产 `examples\<name>.json` → `validate_ir
 
 更多见 `docs\TROUBLESHOOTING.md` 与 `docs\FUSION_MCP.md`。
 
-## 6. 目录里各文档的入口
+## 6. 接入其他 AI 客户端（Codex CLI 等）
+
+本环境默认配 DSH，但管线与 Fusion MCP 均为通用组件：
+
+**Codex CLI**：
+1. 仓库根的 `AGENTS.md` 会被 Codex 自动读取（工作流指令已内置，无需 skill）
+2. MCP 挂载：`~\.codex\config.toml` 追加
+   ```toml
+   [mcp_servers.fusion]
+   url = "http://localhost:9100/"
+   ```
+3. 兜底：Codex 里让 AI 直接 `. $CAD\deploy\fusion_rpc.ps1` 直连（不依赖 MCP 配置）
+
+**Claude Code / Cursor**：把 `AGENTS.md` 内容复制进 `CLAUDE.md` / `.cursorrules`，
+MCP 按各自格式配 `http://localhost:9100/`。
+
+## 7. 目录里各文档的入口
 
 | 想干什么 | 看 |
 |---------|-----|

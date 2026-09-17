@@ -5,9 +5,11 @@
 > **运行形态**：本项目与 DeepSeek Harness（DSH）组合运行。DSH 是主要的 AI 意图解析层；
 > 同时后端保留 Ollama 接口，使管线可脱离 DSH 独立运行。
 >
-> **两条改模路线**：
-> - 改 STEP 文件（Fusion 无需开启）：`scripts/inspect_step.py` 体检 → IR `import_step` 特征叠加修改
-> - 改 Fusion 里的活模型（可编辑特征树/参数）：官方 FusionMCPSample，见 `docs/FUSION_MCP.md`
+> **改模路线（按模型形态选，详见 `docs/FUSION_MCP.md` 的"改模路线选择"）**：
+> - **改 STEP 文件**（Fusion 无需开启）：`scripts/inspect_step.py` 体检 → IR `import_step` 特征叠加修改。解析级精度，但只能"叠加"（补钻/填补/加凸台），**改不了原设计特征**。
+> - **改 Fusion 里的活模型**：官方 FusionMCPSample（见 `docs/FUSION_MCP.md`）。**唯一能改"原特征"的路线**——已有孔径、草图尺寸、参数表、时间线。前提：模型有原生特征树；导入的网格（基础网格特征）没有特征树，MCP 只能读不能改。
+> - **网格手术**（STL/导入网格的兜底）：导出网格后用 trimesh/manifold3d 布尔修改，精度 0.01~0.3mm，3D 打印够用，CNC 不建议。
+> 注意单位坑：Fusion 内部几何为 cm、STL 无单位（Fusion 导入默认按 cm 解析），改模前先核对已知尺寸。
 
 ## 核心架构原则（不可违背）
 
@@ -89,7 +91,7 @@ python scripts/inspect_step.py output/l_bracket.step # 体检既有 STEP（理�
 |-------|-----|
 | 用自然语言建个零件 | 直接在 DSH 会话说需求（skill `ai-cad` 自动触发）；流程见 `docs/DSH_WORKFLOW.md` |
 | 修改/加工既有 STEP 模型 | `docs/IR_SPEC.md` 的"既有模型的理解 + 修改工作流"一节 |
-| 让 AI 直接操作 Fusion 改活模型 | `docs/FUSION_MCP.md`（Fusion 需开启，可编辑特征树） |
+| 让 AI 直接操作 Fusion 改活模型（**唯一能改原特征**：孔径/草图/参数表） | `docs/FUSION_MCP.md`（Fusion 需开启 + 模型须有特征树；含三路线对比与触发逻辑） |
 | 理解管线怎么运转 | `docs/ARCHITECTURE.md` → `docs/MODULES.md` |
 | 写/改 IR JSON | `docs/IR_SPEC.md`（含反模式六禁令） |
 | 改代码、加特征类型 | `docs/DEVELOPMENT.md`（新增特征七步清单） |

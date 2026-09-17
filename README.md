@@ -101,10 +101,30 @@ Fusion 相关验证（装了 Fusion 才做）：启动 Fusion → 实用程序�
 `IR_SPEC.md`（IR 规范与反模式）· `ARCHITECTURE.md`（架构）· `FUSION_MCP.md`（Fusion 接入）·
 `DEVELOPMENT.md`（开发指南）· `TROUBLESHOOTING.md`（排障）· `deploy\DEPLOY.md`（部署详解）
 
+## 换一个 AI 客户端（Codex 等）能用吗？
+
+能。本仓库是 **agent 中立**的：核心管线是纯 Python CLI，Fusion 接入是标准 MCP server。
+DSH 专属的只有两块粘合层，其他 agent 各有对应物：
+
+| 层 | DSH | Codex CLI |
+|---|---|---|
+| 工作流指令 | skill（`~\.agents\skills\ai-cad\`） | 仓库根 `AGENTS.md`（Codex 自动读取，已内置） |
+| Fusion MCP 挂载 | `cordis.patch.yml` 的 mcp-fusion 条目 | `~\.codex\config.toml` 加： |
+
+```toml
+[mcp_servers.fusion]
+url = "http://localhost:9100/"
+```
+
+即使 MCP 没挂上，`ai-cad\deploy\fusion_rpc.ps1` 的 JSON-RPC 直连路线对任何能跑
+PowerShell 的 agent 都可用（AGENTS.md 里已写明用法）。
+Claude Code / Cursor 等同理：`AGENTS.md` 内容抄进各自的指令文件（CLAUDE.md / .cursorrules）即可。
+
 ## 仓库结构
 
 ```
 ├── README.md            # 本文件（含 AI 部署协议）
+├── AGENTS.md            # Agent 工作指令（Codex 等自动读取；Claude Code/Cursor 可复用）
 ├── .gitignore
 └── ai-cad/
     ├── deploy/          # 部署包：install/pack/uninstall.ps1、DEPLOY.md、fusion_rpc.ps1

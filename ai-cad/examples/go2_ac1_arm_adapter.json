@@ -1,0 +1,41 @@
+{
+  "version": "1.0",
+  "meta": {
+    "name": "go2_ac1_arm_adapter",
+    "units": "mm",
+    "description": "Go2_AC1 机械臂转接板（v2，按用户提供的臂底座真实规格重设计上表面）。下表面：8 个 M4 过孔(Ø4.2)对准承载板两侧滑槽(x=64, y=249.26~369.26)固定，配锤形螺母/方颈螺栓，y 向可调。上表面：4 个 Ø5.5 M5 过孔，70x70 正方形分布，居中于板中心(0,310)，即孔位(±35,275)(±35,345)；底面 Ø10x3.2 沉孔窝 M5 薄螺母，保持贴合面平整。中央保留 50x22 走线槽（对应承载板开槽）。假设：(1) 坐标系与 Fusion 文档 XY 同系，板底面 z=0，若文档网格已缩放回真实尺寸(0.1x)则插入后 XY 零偏移、底面置于 z=69.5 即对齐；(2) 孔位坐标为字面量，依赖 plate_l/plate_w 不变，改板尺寸需同步核算；(3) 中央槽用 50x22 直角矩形近似原圆角槽；(4) M5 紧固默认螺钉从上穿过臂底座 Ø5.4 孔 + 底面薄螺母(3mm 厚,窝深 3.2)，如改用热熔嵌母需按嵌母外径扩孔并考虑加厚；(5) 板 6mm PETG，四角 R5；(6) 臂底座 80x95 圆角矩形，孔位边距左5/下10，放置时孔组居中于板中心，底座轮廓 y 275~370 会部分覆盖走线槽上沿，走线从槽的露出段(y 370~381)引出。"
+  },
+  "parameters": {
+    "plate_l": { "value": 144, "min": 120, "max": 180, "description": "板 X 向长" },
+    "plate_w": { "value": 152, "min": 130, "max": 220, "description": "板 Y 向宽" },
+    "plate_t": { "value": 6, "min": 4, "max": 8, "description": "板厚（PETG）" },
+    "m4_d": { "value": 4.2, "min": 4, "max": 5, "description": "滑槽固定 M4 过孔径" },
+    "m5_d": { "value": 5.5, "min": 5.3, "max": 6, "description": "臂底座 M5 过孔径" },
+    "m5_pitch": { "value": 70, "min": 60, "max": 80, "description": "臂底座孔距（正方形分布）" },
+    "m5_nut_cb_d": { "value": 10, "min": 9, "max": 11, "description": "M5 螺母沉孔径" },
+    "m5_nut_cb_depth": { "value": 3.2, "min": 2.5, "max": 4, "description": "M5 螺母沉孔深" },
+    "slot_l": { "value": 50, "min": 40, "max": 60, "description": "中央走线槽长" },
+    "slot_w": { "value": 22, "min": 18, "max": 30, "description": "中央走线槽宽" }
+  },
+  "features": [
+    { "id": "base", "type": "extrude", "profile": { "shape": "rectangle", "length": { "param": "plate_l" }, "width": { "param": "plate_w" }, "center": { "x": 0, "y": 310 } }, "plane_spec": { "plane": "XY", "offset": 0 }, "distance": { "param": "plate_t" }, "direction": "normal", "mode": "new" },
+    { "id": "base_fil", "type": "fillet", "radius": 5, "target": "base", "edges": "vertical" },
+    { "id": "center_slot", "type": "extrude", "profile": { "shape": "rectangle", "length": { "param": "slot_l" }, "width": { "param": "slot_w" }, "center": { "x": 0, "y": 370.06 } }, "plane_spec": { "plane": "XY", "offset": -1 }, "distance": 12, "direction": "normal", "mode": "subtract", "target": "base_fil" },
+    { "id": "cb_n35n275", "type": "extrude", "profile": { "shape": "circle", "diameter": { "param": "m5_nut_cb_d" }, "center": { "x": -35, "y": 275 } }, "plane_spec": { "plane": "XY", "offset": -1 }, "distance": 4.2, "direction": "normal", "mode": "subtract", "target": "center_slot" },
+    { "id": "cb_p35n275", "type": "extrude", "profile": { "shape": "circle", "diameter": { "param": "m5_nut_cb_d" }, "center": { "x": 35, "y": 275 } }, "plane_spec": { "plane": "XY", "offset": -1 }, "distance": 4.2, "direction": "normal", "mode": "subtract", "target": "cb_n35n275" },
+    { "id": "cb_n35p345", "type": "extrude", "profile": { "shape": "circle", "diameter": { "param": "m5_nut_cb_d" }, "center": { "x": -35, "y": 345 } }, "plane_spec": { "plane": "XY", "offset": -1 }, "distance": 4.2, "direction": "normal", "mode": "subtract", "target": "cb_p35n275" },
+    { "id": "cb_p35p345", "type": "extrude", "profile": { "shape": "circle", "diameter": { "param": "m5_nut_cb_d" }, "center": { "x": 35, "y": 345 } }, "plane_spec": { "plane": "XY", "offset": -1 }, "distance": 4.2, "direction": "normal", "mode": "subtract", "target": "cb_n35p345" },
+    { "id": "m5_n35n275", "type": "hole", "diameter": { "param": "m5_d" }, "center": { "x": -35, "y": 275, "z": 6 }, "through": true, "target": "cb_p35p345" },
+    { "id": "m5_p35n275", "type": "hole", "diameter": { "param": "m5_d" }, "center": { "x": 35, "y": 275, "z": 6 }, "through": true, "target": "m5_n35n275" },
+    { "id": "m5_n35p345", "type": "hole", "diameter": { "param": "m5_d" }, "center": { "x": -35, "y": 345, "z": 6 }, "through": true, "target": "m5_p35n275" },
+    { "id": "m5_p35p345", "type": "hole", "diameter": { "param": "m5_d" }, "center": { "x": 35, "y": 345, "z": 6 }, "through": true, "target": "m5_n35p345" },
+    { "id": "m4_p249", "type": "hole", "diameter": { "param": "m4_d" }, "center": { "x": 64, "y": 249.26, "z": 6 }, "through": true, "target": "m5_p35p345" },
+    { "id": "m4_p289", "type": "hole", "diameter": { "param": "m4_d" }, "center": { "x": 64, "y": 289.26, "z": 6 }, "through": true, "target": "m4_p249" },
+    { "id": "m4_p329", "type": "hole", "diameter": { "param": "m4_d" }, "center": { "x": 64, "y": 329.26, "z": 6 }, "through": true, "target": "m4_p289" },
+    { "id": "m4_p369", "type": "hole", "diameter": { "param": "m4_d" }, "center": { "x": 64, "y": 369.26, "z": 6 }, "through": true, "target": "m4_p329" },
+    { "id": "m4_n249", "type": "hole", "diameter": { "param": "m4_d" }, "center": { "x": -64, "y": 249.26, "z": 6 }, "through": true, "target": "m4_p369" },
+    { "id": "m4_n289", "type": "hole", "diameter": { "param": "m4_d" }, "center": { "x": -64, "y": 289.26, "z": 6 }, "through": true, "target": "m4_n249" },
+    { "id": "m4_n329", "type": "hole", "diameter": { "param": "m4_d" }, "center": { "x": -64, "y": 329.26, "z": 6 }, "through": true, "target": "m4_n289" },
+    { "id": "m4_n369", "type": "hole", "diameter": { "param": "m4_d" }, "center": { "x": -64, "y": 369.26, "z": 6 }, "through": true, "target": "m4_n329" }
+  ]
+}
