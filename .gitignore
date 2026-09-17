@@ -8,6 +8,10 @@ pytest-cache-files-*/
 ai-cad/.wheels/
 ai-cad/.wheels-full/
 
+# vendored Python 库 / pip 临时目录（体积大或不可读，不入库）
+ai-cad/.pylibs/
+ai-cad/.tmp/
+
 # 第三方参考仓库（自带 .git，作为独立仓库存在）
 HiCAD/
 
