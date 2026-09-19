@@ -38,7 +38,7 @@
 ## 既有模型的"理解 + 修改"工作流
 
 1. **体检**：`python scripts/inspect_step.py <model.step>` → 产出 `<model>.inspect.json`
-   （体积/包围盒/面统计/圆柱面清单，自动区分孔与凸台并标注 M2–M6 螺纹底孔猜测）
+   （体积/包围盒/面统计/圆柱面清单，以及按共轴和连续区间聚类的候选孔；不猜测螺纹）
 2. **DSH 读报告**，据此确定修改位置的坐标与尺寸
 3. **写修改 IR**：首个特征用 `import_step` 导入原模型，后续叠加 hole/extrude/fillet/chamfer/boolean
 4. 校验 + 建模流程同新建模型；体积变化可与解析解核对

@@ -146,4 +146,26 @@ Fusion-Workflow @{action='clear_envelopes'; task_id='<预览返回的task_id>'}
 
 ## 数据与发布约定
 
+## STEP 候选孔识别（第三批）
+
+`python scripts/inspect_step.py model.step`
+
+报告保留逐个解析圆柱面，同时增加 `hole_candidates`：按规范化轴线、方向与连续轴向区间聚类；相邻的同轴不同直径段归为一个 `stepped` 候选孔，同轴但轴向分离的结构保持为两个候选。每个候选列出直径阶段、轴向范围、参与的圆柱面和证据。
+
+默认轴线位置容差 0.01 mm、角度 0.1°、区间衔接 0.01 mm、半径归并 0.01 mm。这些是拓扑报告聚类容差，不是制造公差。候选孔不证明贯穿、螺纹、刀具可达性或设计意图。
+
+## STL 安装接口候选（第三批）
+
+`python scripts/inspect_stl_interface.py reference.stl --units mm --circle-max-residual-mm 0.1`
+
+工具支持二进制和 ASCII STL。由于 STL 通常不含可靠单位，`--units mm` 必须显式提供；其他单位先转换，不自动猜测。报告包括网格包围盒、退化三角形数量、最大共面三角形簇、平面法向/偏移，以及圆形边界候选的直径、圆心、RMS/最大残差、角度覆盖率和采样数。不满足阈值的边界保留在 `rejected_boundary_loops`。
+
+当前安装面按最大共面面积自动选取，可能不是用户想要的安装面；圆边界是网格拟合值，不能恢复原 CAD 精度。输出始终包含 `requires_user_confirmation=true`，不得直接据此切削或移动模型。
+
+## 建模后端微基准（第三批）
+
+`python scripts/benchmark_backends.py --repeats 3 --out benchmark.json`
+
+固定样本为方盒、四孔板和开口壳，记录导入耗时、每例成功/失败、最短/中位构建时间、有效性、体积与包围盒解析误差。build123d 与 CadQuery 使用相同名义尺寸；缺失后端报告 `unavailable`。本机当前 build123d 0.11.1 三例均通过几何解析值检查，CadQuery 尚未安装，所以还不能形成真实速度对比。微基准不代表复杂装配、Fusion 交互、维护成本或用户纠正次数，不能单凭结果决定迁移。
+
 交付代码分支保留原 `master`，不强推、不自动合并。不提交当前选择 token、临时模型、输出 STEP/F3D、草图快照或用户项目的未授权文件。使用记录输出保持在本地。

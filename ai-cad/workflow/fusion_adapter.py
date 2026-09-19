@@ -105,6 +105,30 @@ def body_snapshot(body):
             "edge_lengths_cm": sorted(round(e.length, 9) for e in body.edges)}
 
 
+def target_context(design, face):
+    """返回定义空间对象；共享组件定义不能按单一实例安全修改。"""
+    occurrence = face.assemblyContext
+    if not occurrence:
+        if face.body.parentComponent != design.rootComponent:
+            raise ValueError("非根组件原生面缺少装配实例上下文，请从装配中选择实例面")
+        return face, face.body, face.body.parentComponent, None
+    native_face = face.nativeObject
+    if not native_face:
+        raise ValueError("无法取得实例面的原生定义，请重新选择")
+    component = native_face.body.parentComponent
+    occurrences = design.rootComponent.allOccurrencesByComponent(component)
+    if occurrences.count != 1:
+        raise ValueError("目标组件定义被多个实例共享；为防止同时修改其他实例，请先创建独立组件或明确全实例修改")
+    return native_face, native_face.body, component, occurrence
+
+
+def occurrence_snapshot(occurrence):
+    if not occurrence:
+        return None
+    return {"token": occurrence.entityToken, "path": occurrence.fullPathName,
+            "transform_cm": [round(x, 12) for x in occurrence.transform2.asArray()]}
+
+
 def load_task(design, task_id):
     attr = design.rootComponent.attributes.itemByName(GROUP, task_id)
     if not attr:
@@ -119,7 +143,15 @@ def save_task(design, task_id, task):
 def task_snapshot(design, task):
     body = resolve(design, task["body_token"], adsk.fusion.BRepBody)
     sketch = resolve(design, task["sketch_token"], adsk.fusion.Sketch)
-    return body, sketch, {"body": body_snapshot(body), "sketch": sketch_snapshot(sketch)}
+    occurrence = None
+    if task.get("occurrence_token"):
+        occurrence = resolve(design, task["occurrence_token"], adsk.fusion.Occurrence)
+        if occurrence_snapshot(occurrence) != task["occurrence"]:
+            raise ValueError("目标组件实例路径或变换已变化，请重新预览")
+        if design.rootComponent.allOccurrencesByComponent(body.parentComponent).count != 1:
+            raise ValueError("确认后出现了共享组件实例，请重新确定修改范围")
+    return body, sketch, {"body": body_snapshot(body), "sketch": sketch_snapshot(sketch),
+                          "occurrence": occurrence_snapshot(occurrence)}
 
 
 def machining_profiles(sketch):
@@ -142,14 +174,13 @@ def preview_change(plan):
     validate_plan(plan)
     app, design = context_design()
     face = resolve(design, plan["target"]["face_token"], adsk.fusion.BRepFace)
-    if face.assemblyContext or face.body.parentComponent != design.rootComponent:
-        raise ValueError("首版写操作仅支持根组件；实例可读取，但须先实现实例绑定后才能修改")
     if face.geometry.surfaceType != adsk.core.SurfaceTypes.PlaneSurfaceType:
         raise ValueError("需选择平面以定义标注坐标系")
     if design.designType != adsk.fusion.DesignTypes.ParametricDesignType:
         raise ValueError("当前写操作需要参数化设计，请先明确是否转换设计类型")
+    native_face, body, component, occurrence = target_context(design, face)
     task_id = uuid.uuid4().hex
-    sketch = design.rootComponent.sketches.add(face)
+    sketch = component.sketches.add(native_face)
     sketch.name = "AI_待确认_" + task_id[:8]
     for op in plan["operations"]:
         p = adsk.core.Point3D.create(op["x"] / 10, op["y"] / 10, 0)
@@ -165,9 +196,12 @@ def preview_change(plan):
             curves = sketch.sketchCurves.sketchLines.addTwoPointRectangle(p0, p1)
             for curve in curves:
                 curve.isConstruction = op["role"] == "locator"
-    task = {"status": "preview", "plan": plan, "body_token": face.body.entityToken,
+    task = {"status": "preview", "plan": plan, "body_token": body.entityToken,
             "sketch_token": sketch.entityToken, "document": app.activeDocument.name}
-    task["reference"] = body_snapshot(face.body)
+    task["reference"] = body_snapshot(body)
+    if occurrence:
+        task["occurrence_token"] = occurrence.entityToken
+        task["occurrence"] = occurrence_snapshot(occurrence)
     save_task(design, task_id, task)
     return {"task_id": task_id, "status": "preview", "annotation": read_annotations(sketch.entityToken)}
 
@@ -225,7 +259,7 @@ def apply_confirmed_change(task_id):
     before = body.volume
     task["status"] = "applying"
     save_task(design, task_id, task)
-    extrudes = design.rootComponent.features.extrudeFeatures
+    extrudes = body.parentComponent.features.extrudeFeatures
     settings = extrudes.createInput(profiles, adsk.fusion.FeatureOperations.CutFeatureOperation)
     settings.participantBodies = [body]
     settings.setDistanceExtent(False, adsk.core.ValueInput.createByReal(task["plan"]["depth_mm"] / 10))

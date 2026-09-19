@@ -24,6 +24,9 @@ from pathlib import Path
 
 from build123d import GeomType, import_step
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from workflow.step_features import group_cylinders
+
 
 def _vec3(v) -> list[float]:
     """build123d Vector / gp_Pnt/gp_Dir → [x, y, z]"""
@@ -121,8 +124,11 @@ def inspect_step(path: Path) -> dict:
     report["planes"].sort(key=lambda p: -p["area"])
     holes = [c for c in report["cylinders"] if c["kind"] == "hole"]
     report["concave_cylinder_face_count"] = len(holes)
+    report["hole_candidates"] = group_cylinders(report["cylinders"])
+    report["hole_candidate_count"] = len(report["hole_candidates"])
     report["notes"] = ["凹圆柱面数量不是独立孔数量；沉孔及分割面需结合连通性进一步识别。",
                        "axis_range_bounds 是面包围盒沿轴向的保守投影范围。",
+                       "hole_candidates 按共轴和连续轴向区间聚类；属于候选特征，不证明贯穿、螺纹或制造意图。",
                        "直径不证明存在螺纹，不自动猜测螺纹或螺纹底孔规格。"]
     return report
 
@@ -137,6 +143,7 @@ def human_summary(report: dict) -> str:
         f"面统计: {report['faces_by_type']}  边总数: {report['edges_total']}",
         f"圆柱面: {len(report['cylinders'])} 个（凹面 {report['concave_cylinder_face_count']} / 凸面 "
         f"{len(report['cylinders']) - report['concave_cylinder_face_count']}；不是独立孔数量）",
+        f"候选孔特征: {report['hole_candidate_count']} 个（基于共轴与连续区间聚类）",
     ]
     for h in report["cylinders"]:
         if h["kind"] == "hole":
