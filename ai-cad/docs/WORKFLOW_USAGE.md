@@ -96,6 +96,29 @@ Fusion-Workflow @{action='clear_envelopes'; task_id='<预览返回的task_id>'}
 
 仅支持根装配坐标系轴对齐包围盒，以 30% 不透明度显示。坐标必须明确，不自动推测实例变换或安装面。包络是 Custom Graphics，不创建 BRep/打印实体，也不构成对位置的用户确认。清理只按本工具保存的任务标识删除图形，可重复调用，不删除其他草图/图形。API 和图形清理已在 Fusion 临时文档实测；尚无自动碰撞着色或文字标签。
 
+## Fusion 命名参数增量修改（第四批）
+
+```powershell
+$plan = @{
+  version=1; units='mm'; scope='document'
+  changes=@(@{name='lid_thickness'; value_mm=4})
+  fixed_parameters=@('joint_height')
+  bodies=@('<受影响实体token>')
+  body_constraints=@(@{
+    body_token='<受影响实体token>'; preserve=@('min_z'); tolerance_mm=0.01
+  })
+}
+Fusion-Workflow @{action='preview_parameter_change'; plan=$plan}
+Fusion-Workflow @{action='confirm_parameter_change'; task_id='<task_id>'; user_confirmed=$true}
+Fusion-Workflow @{action='apply_parameter_change'; task_id='<task_id>'}
+```
+
+只修改明确命名的 Fusion 用户长度参数，`scope=document` 表明用户参数可能影响整个文档；不按 `d1` 或近似名称猜测模型参数。预览阶段不改变几何，会返回当前表达式、内部值、受影响实体快照和拟定值。参数或实体在确认前发生变化会使确认失效。
+
+`fixed_parameters` 必须保持原表达式和值。`body_constraints` 当前支持固定 `min_x/min_y/min_z/max_x/max_y/max_z`，容差单位 mm；必须明确列出 `bodies`，修改后检查实体有效性以及 Fusion 时间线警告/错误。约束失败会恢复旧参数并标记 `failed_rolled_back`。RPC 超时后先查询任务状态；若停在 `applying`，使用 `recover_parameter_change` 恢复保存的旧表达式，不能直接重试写操作。
+
+该功能适合“盖板向上加厚且底面固定”这类已由命名参数驱动的模型。若原模型没有真实关联参数，工具不会重建或猜测特征；需先明确建立参数关系。目前不支持任意自由文本几何不变量、参数表达式改写或自动选择壁厚方向。
+
 ## 已定位装配的校核与制造白名单（第二批）
 
 `python scripts/deliver_assembly.py assembly.json --out output/assemblies`

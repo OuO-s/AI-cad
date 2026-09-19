@@ -57,6 +57,70 @@ def run(context):
         assert abs((volume - body.volume) - math.pi * 0.3 ** 2 * 0.2) < 1e-6
         again = apply_confirmed_change(task_id)
         assert again["repeated"]
+        # 命名长度参数增量修改：预览不改几何，旧确认失效，固定底面保持不动。
+        height_parameter = design.userParameters.add(
+            "workflow_height", adsk.core.ValueInput.createByString("5 mm"), "mm", "workflow smoke")
+        fixed_parameter = design.userParameters.add(
+            "workflow_width", adsk.core.ValueInput.createByString("20 mm"), "mm", "workflow smoke")
+        parameter_sketch = root.sketches.add(root.xYConstructionPlane)
+        parameter_sketch.sketchCurves.sketchLines.addTwoPointRectangle(
+            adsk.core.Point3D.create(9, -1, 0), adsk.core.Point3D.create(11, 1, 0))
+        parameter_input = root.features.extrudeFeatures.createInput(
+            parameter_sketch.profiles.item(0), adsk.fusion.FeatureOperations.NewBodyFeatureOperation)
+        parameter_input.setDistanceExtent(False, adsk.core.ValueInput.createByString("workflow_height"))
+        parameter_body = root.features.extrudeFeatures.add(parameter_input).bodies.item(0)
+        parameter_plan = {"version": 1, "units": "mm", "scope": "document",
+                          "changes": [{"name": "workflow_height", "value_mm": 7}],
+                          "fixed_parameters": ["workflow_width"], "bodies": [parameter_body.entityToken],
+                          "body_constraints": [{"body_token": parameter_body.entityToken,
+                                                "preserve": ["min_x", "max_x", "min_y", "max_y", "min_z"],
+                                                "tolerance_mm": 0.0001}]}
+        parameter_preview = preview_parameter_change(parameter_plan)
+        before_parameter = body_snapshot(parameter_body)
+        assert body_snapshot(parameter_body) == before_parameter
+        height_parameter.expression = "6 mm"
+        design.computeAll()
+        stale_rejected = False
+        try:
+            confirm_parameter_change(parameter_preview["task_id"], True)
+        except ValueError:
+            stale_rejected = True
+        assert stale_rejected
+        height_parameter.expression = "5 mm"
+        design.computeAll()
+        parameter_preview = preview_parameter_change(parameter_plan)
+        confirm_parameter_change(parameter_preview["task_id"], True)
+        parameter_result = apply_parameter_change(parameter_preview["task_id"])
+        assert parameter_result["status"] == "applied"
+        assert abs(parameter_body.boundingBox.maxPoint.z - .7) < 1e-8
+        assert fixed_parameter.expression == "20 mm"
+        assert apply_parameter_change(parameter_preview["task_id"])["repeated"]
+        rollback_plan = dict(parameter_plan)
+        rollback_plan["changes"] = [{"name": "workflow_height", "value_mm": 9}]
+        rollback_plan["body_constraints"] = [{"body_token": parameter_body.entityToken,
+                                               "preserve": ["max_z"], "tolerance_mm": 0.0001}]
+        rollback_preview = preview_parameter_change(rollback_plan)
+        confirm_parameter_change(rollback_preview["task_id"], True)
+        invariant_rejected = False
+        try:
+            apply_parameter_change(rollback_preview["task_id"])
+        except ValueError:
+            invariant_rejected = True
+        assert invariant_rejected
+        assert abs(height_parameter.value - .7) < 1e-8
+        assert load_task(design, rollback_preview["task_id"])["status"] == "failed_rolled_back"
+        recovery_plan = dict(parameter_plan)
+        recovery_plan["changes"] = [{"name": "workflow_height", "value_mm": 8}]
+        recovery_preview = preview_parameter_change(recovery_plan)
+        confirm_parameter_change(recovery_preview["task_id"], True)
+        recovery_task = load_task(design, recovery_preview["task_id"])
+        recovery_task["old_expressions"] = {"workflow_height": height_parameter.expression}
+        recovery_task["status"] = "applying"
+        save_task(design, recovery_preview["task_id"], recovery_task)
+        height_parameter.expression = "8 mm"
+        design.computeAll()
+        recover_parameter_change(recovery_preview["task_id"])
+        assert abs(height_parameter.value - .7) < 1e-8
         # 旋转、平移的唯一组件实例可在定义空间安全修改；新增共享实例后必须拒绝。
         transform = adsk.core.Matrix3D.create()
         transform.setToRotation(math.pi / 4, adsk.core.Vector3D.create(0, 0, 1), adsk.core.Point3D.create(0, 0, 0))
@@ -95,7 +159,9 @@ def run(context):
         print(json.dumps({"smoke": "passed", "tests": ["preview_no_body_change",
                          "stale_confirmation_rejected", "edited_radius_applied", "idempotent_apply",
                          "graphics_not_manufacturing", "cleanup_preserves_user_graphics",
-                         "rotated_unique_instance_applied", "shared_component_rejected"]}))
+                         "rotated_unique_instance_applied", "shared_component_rejected",
+                         "parameter_preview_stale_rejected", "parameter_invariant_applied",
+                         "parameter_invariant_rollback", "interrupted_parameter_recovery"]}))
     finally:
         scratch.close(False)
         if previous and previous.isValid:

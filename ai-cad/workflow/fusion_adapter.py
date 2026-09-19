@@ -338,6 +338,177 @@ def clear_envelopes(task_id):
     return {"task_id": task_id, "status": "cleared"}
 
 
+def validate_parameter_plan(design, plan):
+    if plan.get("version") != 1 or plan.get("units") != "mm" or plan.get("scope") != "document":
+        raise ValueError("参数修改必须明确 version=1、units=mm、scope=document")
+    if set(plan) - {"version", "units", "scope", "changes", "fixed_parameters", "bodies", "body_constraints"}:
+        raise ValueError("存在未知参数计划字段，不能静默忽略")
+    changes = plan.get("changes")
+    if not isinstance(changes, list) or not changes:
+        raise ValueError("changes 不能为空")
+    names = []
+    for change in changes:
+        if set(change) != {"name", "value_mm"} or not isinstance(change["name"], str) or not change["name"]:
+            raise ValueError("每项修改只能包含明确参数名和 value_mm")
+        value = change["value_mm"]
+        if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value):
+            raise ValueError("value_mm 必须为有限数值")
+        if change["name"] in names:
+            raise ValueError("参数修改不能重复")
+        names.append(change["name"])
+    fixed = plan.get("fixed_parameters", [])
+    if not isinstance(fixed, list) or any(not isinstance(x, str) or not x for x in fixed) or len(set(fixed)) != len(fixed):
+        raise ValueError("fixed_parameters 必须为不重复参数名")
+    if set(names) & set(fixed):
+        raise ValueError("同一参数不能既修改又固定")
+    for name in names + fixed:
+        parameter = design.userParameters.itemByName(name)
+        if not parameter:
+            raise ValueError("只支持明确命名的用户参数，不按 d1 等模型参数或近似名称猜测")
+        if not design.unitsManager.isValidExpression("1 mm", parameter.unit):
+            raise ValueError("当前仅支持长度维度用户参数")
+    bodies = plan.get("bodies")
+    if not isinstance(bodies, list) or not bodies or any(not isinstance(x, str) or not x for x in bodies) or len(set(bodies)) != len(bodies):
+        raise ValueError("必须明确列出受影响实体 token")
+    body_set = set(bodies)
+    for token in bodies:
+        resolve(design, token, adsk.fusion.BRepBody)
+    constraints = plan.get("body_constraints", [])
+    valid_keys = {"min_x", "min_y", "min_z", "max_x", "max_y", "max_z"}
+    for constraint in constraints:
+        if set(constraint) != {"body_token", "preserve", "tolerance_mm"} or constraint["body_token"] not in body_set:
+            raise ValueError("实体约束必须引用受影响实体")
+        preserve = constraint["preserve"]
+        if not isinstance(preserve, list) or not preserve or any(x not in valid_keys for x in preserve) or len(set(preserve)) != len(preserve):
+            raise ValueError("preserve 仅支持不重复的包围盒边界名")
+        tolerance = constraint["tolerance_mm"]
+        if isinstance(tolerance, bool) or not isinstance(tolerance, (int, float)) or not math.isfinite(tolerance) or tolerance < 0:
+            raise ValueError("约束容差必须为非负有限 mm 数值")
+
+
+def parameter_snapshot(design, plan):
+    names = [x["name"] for x in plan["changes"]] + plan.get("fixed_parameters", [])
+    parameters = {}
+    for name in names:
+        parameter = design.userParameters.itemByName(name)
+        if not parameter:
+            raise ValueError("用户参数已删除或改名，请重新预览")
+        parameters[name] = {"expression": parameter.expression, "unit": parameter.unit,
+                            "value_internal": round(parameter.value, 12)}
+    bodies = {}
+    for token in plan["bodies"]:
+        body = resolve(design, token, adsk.fusion.BRepBody)
+        bodies[token] = body_snapshot(body)
+    return {"parameters": parameters, "bodies": bodies}
+
+
+def preview_parameter_change(plan):
+    app, design = context_design()
+    validate_parameter_plan(design, plan)
+    task_id = uuid.uuid4().hex
+    reference = parameter_snapshot(design, plan)
+    task = {"kind": "parameter_change", "status": "preview", "plan": plan,
+            "document": app.activeDocument.name, "reference": reference}
+    save_task(design, task_id, task)
+    return {"task_id": task_id, "status": "preview", "current": reference,
+            "proposed": plan["changes"], "checks": "尚未修改几何；请核对参数名、数值和固定边界"}
+
+
+def confirm_parameter_change(task_id, user_confirmed=False):
+    _, design = context_design()
+    task = load_task(design, task_id)
+    if task.get("kind") != "parameter_change" or task["status"] not in ("preview", "confirmed"):
+        raise ValueError("任务类型或状态不允许确认")
+    if not user_confirmed:
+        raise ValueError("必须由用户明确确认参数变更")
+    current = parameter_snapshot(design, task["plan"])
+    if current != task["reference"]:
+        raise ValueError("参数或受影响实体已变化，请重新预览")
+    task["receipt"] = {"plan_hash": fingerprint(task["plan"]), "snapshot_hash": fingerprint(current)}
+    task["status"] = "confirmed"
+    save_task(design, task_id, task)
+    return {"task_id": task_id, "status": "confirmed", "receipt": task["receipt"]}
+
+
+def _rollback_parameters(design, old_expressions):
+    failures = []
+    for name, expression in old_expressions.items():
+        parameter = design.userParameters.itemByName(name)
+        try:
+            if not parameter:
+                raise ValueError("参数不存在")
+            parameter.expression = expression
+        except Exception as exc:
+            failures.append(name + ": " + str(exc))
+    design.computeAll()
+    if failures:
+        raise ValueError("参数回滚不完整：" + "; ".join(failures))
+
+
+def apply_parameter_change(task_id):
+    _, design = context_design()
+    task = load_task(design, task_id)
+    if task["status"] == "applied":
+        return {"task_id": task_id, "status": "applied", "repeated": True}
+    if task.get("kind") != "parameter_change" or task["status"] != "confirmed":
+        raise ValueError("参数任务尚未确认")
+    current = parameter_snapshot(design, task["plan"])
+    if task["receipt"] != {"plan_hash": fingerprint(task["plan"]), "snapshot_hash": fingerprint(current)}:
+        raise ValueError("确认已失效，请重新预览并确认")
+    old = {change["name"]: design.userParameters.itemByName(change["name"]).expression
+           for change in task["plan"]["changes"]}
+    task["old_expressions"] = old
+    task["status"] = "applying"
+    save_task(design, task_id, task)
+    try:
+        for change in task["plan"]["changes"]:
+            expression = ("{:.12g} mm".format(change["value_mm"]))
+            parameter = design.userParameters.itemByName(change["name"])
+            if not design.unitsManager.isValidExpression(expression, parameter.unit):
+                raise ValueError("参数值表达式无效")
+            parameter.expression = expression
+        if not design.computeAll():
+            raise ValueError("Fusion computeAll 未完成")
+        unhealthy = []
+        for i in range(design.timeline.count):
+            item = design.timeline.item(i)
+            if item.healthState in (adsk.fusion.FeatureHealthStates.WarningFeatureHealthState,
+                                     adsk.fusion.FeatureHealthStates.ErrorFeatureHealthState):
+                unhealthy.append(item.name)
+        if unhealthy:
+            raise ValueError("时间线出现警告或错误：" + ", ".join(unhealthy))
+        after = parameter_snapshot(design, task["plan"])
+        for constraint in task["plan"].get("body_constraints", []):
+            before_box = task["reference"]["bodies"][constraint["body_token"]]["bounds"]
+            after_box = after["bodies"][constraint["body_token"]]["bounds"]
+            values_before = {"min_x": before_box[0][0], "min_y": before_box[0][1], "min_z": before_box[0][2],
+                             "max_x": before_box[1][0], "max_y": before_box[1][1], "max_z": before_box[1][2]}
+            values_after = {"min_x": after_box[0][0], "min_y": after_box[0][1], "min_z": after_box[0][2],
+                            "max_x": after_box[1][0], "max_y": after_box[1][1], "max_z": after_box[1][2]}
+            if any(abs(values_after[key] - values_before[key]) > constraint["tolerance_mm"] for key in constraint["preserve"]):
+                raise ValueError("实体固定边界约束不满足")
+        task["after"] = after
+        task["status"] = "applied"
+        save_task(design, task_id, task)
+        return {"task_id": task_id, "status": "applied", "before": task["reference"], "after": after}
+    except Exception:
+        _rollback_parameters(design, old)
+        task["status"] = "failed_rolled_back"
+        save_task(design, task_id, task)
+        raise
+
+
+def recover_parameter_change(task_id):
+    _, design = context_design()
+    task = load_task(design, task_id)
+    if task.get("kind") != "parameter_change" or task["status"] != "applying" or not task.get("old_expressions"):
+        raise ValueError("仅能恢复中断在 applying 状态的参数任务")
+    _rollback_parameters(design, task["old_expressions"])
+    task["status"] = "recovered"
+    save_task(design, task_id, task)
+    return {"task_id": task_id, "status": "recovered"}
+
+
 def dispatch(request):
     action = request["action"]
     if action == "read_selection":
@@ -350,6 +521,14 @@ def dispatch(request):
         return preview_envelopes(request)
     if action == "clear_envelopes":
         return clear_envelopes(request["task_id"])
+    if action == "preview_parameter_change":
+        return preview_parameter_change(request["plan"])
+    if action == "confirm_parameter_change":
+        return confirm_parameter_change(request["task_id"], request.get("user_confirmed", False))
+    if action == "apply_parameter_change":
+        return apply_parameter_change(request["task_id"])
+    if action == "recover_parameter_change":
+        return recover_parameter_change(request["task_id"])
     if action == "confirm_change":
         return confirm_change(request["task_id"], request.get("user_confirmed", False), request.get("depth_mm"))
     if action == "apply_confirmed_change":
