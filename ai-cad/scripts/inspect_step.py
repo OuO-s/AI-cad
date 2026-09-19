@@ -87,6 +87,10 @@ def inspect_step(path: Path) -> dict:
             kind = "hole" if dot < 0 else "boss"
 
             fbb = face.bounding_box()
+            axis_values = [x * direction.X() + y * direction.Y() + z * direction.Z()
+                           for x in (fbb.min.X, fbb.max.X)
+                           for y in (fbb.min.Y, fbb.max.Y)
+                           for z in (fbb.min.Z, fbb.max.Z)]
             report["cylinders"].append({
                 "kind": kind,
                 "radius": round(radius, 3),
@@ -96,6 +100,7 @@ def inspect_step(path: Path) -> dict:
                 "axis_point": _vec3(loc),
                 "face_center": _vec3(center),
                 "z_range": [round(fbb.min.Z, 3), round(fbb.max.Z, 3)],
+                "axis_range_bounds": [round(min(axis_values), 3), round(max(axis_values), 3)],
                 "area": round(face.area, 3),
             })
 
@@ -115,11 +120,10 @@ def inspect_step(path: Path) -> dict:
     report["cylinders"].sort(key=lambda c: (c["kind"], c["radius"]))
     report["planes"].sort(key=lambda p: -p["area"])
     holes = [c for c in report["cylinders"] if c["kind"] == "hole"]
-    report["hole_count"] = len(holes)
-    # 常见螺纹底孔提示（通径配合：M2=2.4 M3=3.4 M4=4.5 M5=5.5 M6=6.6）
-    thread_map = {2.4: "M2", 3.4: "M3", 4.5: "M4", 5.5: "M5", 6.6: "M6"}
-    for h in holes:
-        h["likely_thread"] = thread_map.get(round(h["diameter"], 1))
+    report["concave_cylinder_face_count"] = len(holes)
+    report["notes"] = ["凹圆柱面数量不是独立孔数量；沉孔及分割面需结合连通性进一步识别。",
+                       "axis_range_bounds 是面包围盒沿轴向的保守投影范围。",
+                       "直径不证明存在螺纹，不自动猜测螺纹或螺纹底孔规格。"]
     return report
 
 
@@ -131,8 +135,8 @@ def human_summary(report: dict) -> str:
         f"包围盒: {b['size'][0]} × {b['size'][1]} × {b['size'][2]} mm"
         f" (min {b['min']} → max {b['max']})",
         f"面统计: {report['faces_by_type']}  边总数: {report['edges_total']}",
-        f"圆柱面: {len(report['cylinders'])} 个（孔 {report['hole_count']} / 凸台 "
-        f"{len(report['cylinders']) - report['hole_count']}）",
+        f"圆柱面: {len(report['cylinders'])} 个（凹面 {report['concave_cylinder_face_count']} / 凸面 "
+        f"{len(report['cylinders']) - report['concave_cylinder_face_count']}；不是独立孔数量）",
     ]
     for h in report["cylinders"]:
         if h["kind"] == "hole":

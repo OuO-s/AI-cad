@@ -31,6 +31,7 @@ _IMPORT_POOL = {
     "profile_rect": ["Rectangle"],
     "profile_circle": ["Circle"],
     "profile_polygon": ["RegularPolygon"],
+    "profile_polygon_points": ["Polygon"],
     "extrude": ["extrude"],
     "hole": ["Cylinder", "Align"],
     "fillet": ["fillet"],
@@ -103,10 +104,18 @@ def _profile_expr(profile: dict, res: ParamResolver, used: set[str]) -> str:
         d = res.expr(profile["diameter"], where + ".diameter")
         core = f"Circle({d} / 2.0)"
     elif shape == "polygon":
-        used.add("profile_polygon")
-        r = res.expr(profile["circumscribed_radius"], where + ".circumscribed_radius")
-        n = int(profile["sides"])
-        core = f"RegularPolygon({r}, {n})"
+        if "points" in profile:
+            used.add("profile_polygon_points")
+            pts = ", ".join(
+                f"({res.expr(p['x'], where + '.points.x')}, {res.expr(p['y'], where + '.points.y')})"
+                for p in profile["points"]
+            )
+            core = f"Polygon({pts})"
+        else:
+            used.add("profile_polygon")
+            r = res.expr(profile["circumscribed_radius"], where + ".circumscribed_radius")
+            n = int(profile["sides"])
+            core = f"RegularPolygon({r}, {n})"
         if profile.get("rotation"):
             used.add("axis")
             core = f"{core}.rotate(Axis.Z, {res.expr(profile['rotation'], where + '.rotation')})"
@@ -277,11 +286,14 @@ EMITTERS = {
 
 # ── 主入口 ─────────────────────────────────────────────────
 
-def generate_script(ir: dict, *, step_path: str, stl_path: str, base_dir=None) -> str:
+def generate_script(ir: dict, *, step_path: str, stl_path: str | None = None,
+                    base_dir=None, expected_solids: int = 1) -> str:
     """把合法 CAD IR 翻译为可直接执行的 build123d 脚本文本。
 
     base_dir: IR JSON 所在目录（Path 或 str），用于解析 import_step 的相对路径。
     """
+    if isinstance(expected_solids, bool) or not isinstance(expected_solids, int) or expected_solids < 1:
+        raise CodegenError("expected_solids 必须为正整数")
     base_dir = base_dir if isinstance(base_dir, Path) or base_dir is None else Path(base_dir)
     res = ParamResolver(ir.get("parameters", {}))
     used: set[str] = set()
@@ -354,20 +366,33 @@ def generate_script(ir: dict, *, step_path: str, stl_path: str, base_dir=None) -
 
     final_lines += [
         "",
-        f"export_step(result, {step_path!r})",
-        f"export_stl(result, {stl_path!r}, tolerance=0.1, angular_tolerance=0.3)",
-        "",
         "_bb = result.bounding_box()",
-        "print('::METRICS::' + json.dumps({",
+        "_metrics = {",
         "    'volume': result.volume,",
         "    'bbox': [_bb.size.X, _bb.size.Y, _bb.size.Z],",
         "    'solids': len(result.solids()),",
         "    'valid': bool(result.is_valid),",
-        "}))",
+        "}",
+        "print('::METRICS::' + json.dumps(_metrics))",
+        "if not _metrics['valid']:",
+        "    raise ValueError('几何检查失败：实体无效，未导出')",
+        f"if _metrics['solids'] != {expected_solids!r}:",
+        "    raise ValueError('几何检查失败：实体数量与预期不符，未导出')",
+        "if not all(math.isfinite(v) and v > 0 for v in [_metrics['volume']] + _metrics['bbox']):",
+        "    raise ValueError('几何检查失败：体积或包围盒异常，未导出')",
+        f"if not export_step(result, {step_path!r}):",
+        "    raise RuntimeError('STEP 导出失败')",
     ]
+    if stl_path is not None:
+        final_lines += [
+            f"if not export_stl(result, {stl_path!r}, tolerance=0.1, angular_tolerance=0.3):",
+            "    raise RuntimeError('STL 导出失败')",
+        ]
 
     imports = sorted({n for key in used for n in _IMPORT_POOL.get(key, [])})
-    import_lines = ["import json", "", "from build123d import (", *[f"    {n}," for n in imports], ")", ""]
+    if stl_path is None:
+        imports.remove("export_stl")
+    import_lines = ["import json", "import math", "", "from build123d import (", *[f"    {n}," for n in imports], ")", ""]
 
     header = [f"# 由 ai-cad 确定性生成器自动生成，来自 {ir['meta']['name']}.json — 请勿手工编辑",
               "# 生成器版本: 1.1 (extrude/hole/fillet/chamfer/boolean/import_step)", ""]

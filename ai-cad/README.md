@@ -76,14 +76,23 @@ ai-cad/
 
 ## 快速开始
 
+工作流改进与分阶段验收见 [修改计划](docs/WORKFLOW_IMPROVEMENT_PLAN.md)，已实现功能与调用方式见 [工作流使用说明](docs/WORKFLOW_USAGE.md)。Fusion 首版已支持标注预览确认与根组件平面圆孔切削，复杂装配/网格拟合仍待开发。
+
 ```bash
 pip install build123d jsonschema pytest
 python -m pytest tests -v -p no:cacheprovider     # 回归测试（Windows 记得设 PYTHONIOENCODING=utf-8）
 python scripts/build_ir.py examples/l_bracket.json # 全管线出 STEP
-python scripts/inspect_step.py output/l_bracket.step # 体检既有 STEP（理解模型）
+python scripts/inspect_step.py output/<run_id>/l_bracket.step # 用本次清单中的实际路径替换
 ```
 
-产出：`output/l_bracket.step`（原生 B-Rep，可导入 SolidWorks / Fusion 360 编辑）。
+产出：`output/<run_id>/l_bracket.step` 与 `run.json`（每次独立目录；原生 B-Rep，可导入 SolidWorks / Fusion 360 编辑）。
+
+默认只导出 STEP；需要 STL 时增加 `--stl`。默认要求一个制造实体，多实体需显式指定 `--expected-solids N`。导出前会检查几何有效性、有限正体积/包围盒与实体数量；安装孔位和装配干涉仍需按任务核对。`--mode draft` 可省略圆角/倒角先看样式，最终用 `--mode final` 完整生成。
+
+```bash
+python scripts/build_ir.py examples/l_bracket.json --stl
+python -m pytest tests/test_delivery.py tests/test_generator.py -q
+```
 
 ## 我该读哪份文档？
 

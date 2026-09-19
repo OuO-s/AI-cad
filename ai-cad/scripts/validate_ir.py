@@ -97,6 +97,8 @@ def validate_semantics(ir, base_dir=None):
         seen_ids[fid] = idx
 
         ftype = feat["type"]
+        if ftype in ("revolve", "sketch"):
+            errors.append(f"{where}: 当前生成器不支持独立 {ftype} 特征")
 
         # 引用存在且在前
         for ref in feat.get("depends_on", []):
@@ -117,7 +119,7 @@ def validate_semantics(ir, base_dir=None):
                     errors.append(f"{where}: 操作数 '{op}' 不存在或未在前文出现")
 
         # mode=add/subtract/intersect 时必须有 target
-        mode = feat.get("mode")
+        mode = feat.get("mode", "add")
         if ftype in ("extrude", "revolve") and mode in ("add", "subtract", "intersect") and target is None:
             errors.append(f"{where}: mode={mode} 需要指定 target")
 
@@ -137,6 +139,13 @@ def validate_semantics(ir, base_dir=None):
                 errors.append(f"{where}: depth 与 through 互斥，只能二选一")
             if not has_depth and not has_through:
                 errors.append(f"{where}: 必须指定 depth（盲孔）或 through: true（贯穿）")
+
+        # polygon 轮廓合法性：正多边形需 sides+半径（结构层已保证二选一），
+        # 任意点列多边形至少 3 个顶点
+        prof = feat.get("profile")
+        if isinstance(prof, dict) and prof.get("shape") == "polygon" and "points" in prof:
+            if len(prof["points"]) < 3:
+                errors.append(f"{where}: profile.points 至少需要 3 个顶点，得到 {len(prof['points'])}")
 
         # revolve 角度范围
         if ftype == "revolve" and "angle" in feat:

@@ -161,7 +161,7 @@
         },
         {
           "type": "object",
-          "required": ["shape", "sides", "circumscribed_radius"],
+          "required": ["shape"],
           "additionalProperties": false,
           "properties": {
             "shape": { "const": "polygon" },
@@ -169,18 +169,29 @@
               "type": "integer",
               "minimum": 3,
               "maximum": 64,
-              "description": "边数（正多边形）。"
+              "description": "边数（正多边形）。与 points 二选一。"
             },
             "circumscribed_radius": {
               "$ref": "#/$defs/positiveNumberOrParam",
-              "description": "外接圆半径。"
+              "description": "外接圆半径。与 points 二选一。"
             },
-            "center": { "$ref": "#/$defs/point2d", "description": "多边形中心（默认原点）" },
+            "points": {
+              "type": "array",
+              "minItems": 3,
+              "maxItems": 256,
+              "items": { "$ref": "#/$defs/point2d" },
+              "description": "任意简单多边形顶点（按顺序闭合，允许凸/凹）。与 sides 二选一；点的坐标为草图面局部坐标。"
+            },
+            "center": { "$ref": "#/$defs/point2d", "description": "多边形中心（默认原点；正多边形与 points 均可用）" },
             "rotation": {
               "type": "number",
               "description": "绕中心的旋转角（度，默认 0）。"
             }
-          }
+          },
+          "oneOf": [
+            { "required": ["sides", "circumscribed_radius"] },
+            { "required": ["points"] }
+          ]
         }
       ],
       "description": "草图轮廓。当前版本每个 sketch 恰含一个轮廓。"

@@ -33,20 +33,45 @@ function Fusion-Init {
                            clientInfo = @{ name = 'dsh-fusion-rpc'; version = '1.0' } } }
     $body = $init | ConvertTo-Json -Depth 5
     $r = Invoke-WebRequest -Uri $script:FusionMcpUrl -Method Post -ContentType 'application/json' `
-         -Headers $script:FusionHeaders -Body $body -UseBasicParsing
+         -Headers $script:FusionHeaders -Body $body -UseBasicParsing -ErrorAction Stop
     ($r.Content | ConvertFrom-Json).result.serverInfo
 }
 
 function Fusion-Call {
-    param([Parameter(Mandatory)][string]$Tool, [hashtable]$Arguments = @{})
+    param([Parameter(Mandatory)][string]$Tool, [hashtable]$Arguments = @{},
+          [int]$TimeoutSec = 180)
     <# tools/call 原始调用；返回 result（isError=true 时抛出文本） #>
-    $payload = @{ jsonrpc = '2.0'; id = 2; method = 'tools/call'
-                  params = @{ name = $Tool; arguments = $Arguments } } | ConvertTo-Json -Depth 8
-    $r = Invoke-WebRequest -Uri $script:FusionMcpUrl -Method Post -ContentType 'application/json' `
-         -Headers $script:FusionHeaders -Body $payload -UseBasicParsing
-    $j = $r.Content | ConvertFrom-Json
-    if ($j.result.isError) { throw "Fusion 工具执行失败:`n$($j.result.content[0].text)" }
-    return $j.result
+    $payload = @{ jsonrpc = '2.0'; id = [guid]::NewGuid().ToString(); method = 'tools/call'
+                  params = @{ name = $Tool; arguments = $Arguments } } | ConvertTo-Json -Depth 20
+    $mutex = [Threading.Mutex]::new($false, 'Local\AI_CAD_Fusion_RPC')
+    $locked = $false
+    try {
+        $locked = $mutex.WaitOne(0)
+        if (-not $locked) { throw '已有 Fusion 请求运行；请等待完成，勿重复执行修改。' }
+        $r = Invoke-WebRequest -Uri $script:FusionMcpUrl -Method Post -ContentType 'application/json; charset=utf-8' `
+             -Headers $script:FusionHeaders -Body ([Text.Encoding]::UTF8.GetBytes($payload)) `
+             -TimeoutSec $TimeoutSec -UseBasicParsing -ErrorAction Stop
+        $j = $r.Content | ConvertFrom-Json
+        if ($j.error) { throw ($j.error | ConvertTo-Json -Compress) }
+        if (-not $j.result) { throw 'Fusion 返回缺少 result' }
+        if ($j.result.isError) { throw "Fusion 工具执行失败:`n$($j.result.content[0].text)" }
+        return $j.result
+    } finally {
+        if ($locked) { $mutex.ReleaseMutex() }
+        $mutex.Dispose()
+    }
+}
+
+function Fusion-Workflow {
+    param([Parameter(Mandatory)][hashtable]$Request)
+    # 仅串接受控的工具源码；请求作为 JSON 数据解析，不拼成 Python 表达式。
+    $workflowDir = Join-Path $PSScriptRoot '..\workflow'
+    $source = Get-Content -LiteralPath (Join-Path $workflowDir 'plan.py') -Raw -Encoding UTF8
+    $source += "`n" + (Get-Content -LiteralPath (Join-Path $workflowDir 'fusion_adapter.py') -Raw -Encoding UTF8)
+    $payload = $Request | ConvertTo-Json -Depth 30 -Compress
+    $encoded = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($payload))
+    $source += "`nimport base64`ndef run(context):`n    request = json.loads(base64.b64decode('$encoded').decode('utf-8'))`n    print(json.dumps(dispatch(request), ensure_ascii=True))`n"
+    Fusion-RunScript $source
 }
 
 function Fusion-RunScript {

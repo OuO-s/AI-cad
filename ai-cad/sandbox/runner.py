@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import ast
 import json
+import math
 import subprocess
 import sys
 from dataclasses import dataclass, field
@@ -50,7 +51,7 @@ class RunResult:
         if self.timed_out:
             return "执行超时"
         if self.ok:
-            return f"成功 volume={self.metrics.get('volume'):.2f}"
+            return f"成功 volume={self.metrics['volume']:.2f}" if self.metrics else "成功（无几何指标）"
         return f"失败 exit={self.returncode}: {self.stderr.strip().splitlines()[-1] if self.stderr.strip() else '无输出'}"
 
 
@@ -125,7 +126,31 @@ def run_script(script_path: Path, *, timeout_s: float = 120.0, cwd: Path | None 
             except json.JSONDecodeError:
                 pass
             break
+    if result.ok:
+        reason = metrics_error(result.metrics)
+        if reason:
+            result.ok = False
+            result.stderr += "\n几何检查失败：" + reason
     return result
+
+
+def metrics_error(metrics: dict | None) -> str | None:
+    """退出码为零仍需有可信的基础几何指标；不代表已验证装配。"""
+    if not isinstance(metrics, dict):
+        return "缺少几何指标"
+    if metrics.get("valid") is not True:
+        return "实体有效性未通过"
+    solids = metrics.get("solids")
+    if isinstance(solids, bool) or not isinstance(solids, int) or solids < 1:
+        return "没有有效实体数量"
+    bbox = metrics.get("bbox")
+    if not isinstance(bbox, list) or len(bbox) != 3:
+        return "包围盒格式错误"
+    values = [metrics.get("volume")] + bbox
+    if not all(isinstance(v, (int, float)) and not isinstance(v, bool)
+               and math.isfinite(v) and v > 0 for v in values):
+        return "体积或包围盒必须为有限正数"
+    return None
 
 
 def execute(script_path: Path, *, timeout_s: float = 120.0, cwd: Path | None = None,

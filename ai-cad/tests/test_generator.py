@@ -92,6 +92,21 @@ def test_parameters_flow_into_geometry():
     assert r.metrics["volume"] == pytest.approx(50 * 30 * 10, abs=1e-6)
 
 
+def test_extrude_point_list_polygon():
+    """任意点列多边形：直角三角形 (0,0)-(30,0)-(0,20)，面积 300。"""
+    ir = base_ir([{"id": "tri", "type": "extrude",
+                   "profile": {"shape": "polygon",
+                               "points": [{"x": 0, "y": 0}, {"x": {"param": "a"}, "y": 0}, {"x": 0, "y": 20}]},
+                   "plane_spec": {"plane": "XZ"}, "distance": {"param": "t"},
+                   "direction": "symmetric", "mode": "new"}],
+                 name="t_points", params={"a": {"value": 30}, "t": {"value": 10}})
+    r, _ = build(ir, "t_points")
+    assert r.ok, r.summary()
+    assert r.metrics["volume"] == pytest.approx(0.5 * 30 * 20 * 10, rel=1e-9)
+    assert r.metrics["bbox"] == pytest.approx([30, 10, 20])
+    assert r.metrics["solids"] == 1 and r.metrics["valid"]
+
+
 # ── hole ───────────────────────────────────────────────────
 
 def test_hole_through():
