@@ -84,6 +84,66 @@ python -m pytest tests -q
 
 Fusion 实机验收需要拼接 `workflow/plan.py`、`workflow/fusion_adapter.py` 和 `scripts/fusion_workflow_smoke.py` 后交给 `Fusion-RunScript`。测试新建临时文档，完成后关闭且不保存并恢复原活动文档；覆盖预览、确认失效、按编辑后尺寸加工、幂等执行。不会在用户当前模型上试切。
 
-## 数据与发布
+## Fusion 半透明包络（第二批）
+
+```powershell
+Fusion-Workflow @{
+  action='preview_envelopes'; units='mm'; frame='assembly_world'
+  envelopes=@(@{id='A'; bounds_mm=@(@(4,27,2), @(114,137,72))})
+}
+Fusion-Workflow @{action='clear_envelopes'; task_id='<预览返回的task_id>'}
+```
+
+仅支持根装配坐标系轴对齐包围盒，以 30% 不透明度显示。坐标必须明确，不自动推测实例变换或安装面。包络是 Custom Graphics，不创建 BRep/打印实体，也不构成对位置的用户确认。清理只按本工具保存的任务标识删除图形，可重复调用，不删除其他草图/图形。API 和图形清理已在 Fusion 临时文档实测；尚无自动碰撞着色或文字标签。
+
+## 已定位装配的校核与制造白名单（第二批）
+
+`python scripts/deliver_assembly.py assembly.json --out output/assemblies`
+
+输入 STEP 必须已经在同一装配坐标系中；每个文件恰好一个实体。工具不猜测原点、不按实体序号拆分文件、不自动移动模型。参考包络仍参与检查，但不得列入 `exports`。
+
+```json
+{
+  "version": 1,
+  "units": "mm",
+  "frame": "assembly_world",
+  "parts": [
+    {"id": "lower", "role": "manufacturing", "path": "lower.step"},
+    {"id": "lid", "role": "manufacturing", "path": "lid.step"},
+    {"id": "module_a", "role": "reference", "path": "module_a.step"}
+  ],
+  "exports": ["lower", "lid"],
+  "checks": [
+    {"pair": ["lower", "lid"], "min_clearance_mm": 0},
+    {"pair": ["lower", "module_a"], "min_clearance_mm": 0},
+    {"pair": ["lid", "module_a"], "min_clearance_mm": 1}
+  ]
+}
+```
+
+示例的 1 mm 仅示范约束，不是通用推荐间隙。每对零件检查交集体积和最小距离；允许零间隙接触不等于允许实体重叠。可配置 `volume_tolerance_mm3`（默认 1e-6）、`distance_tolerance_mm`（默认 1e-6）。容差不是制造配合值。零件可加 `bounds_mm: [[xmin,ymin,zmin],[xmax,ymax,zmax]]`，按 `bounds_tolerance_mm`（默认 1e-5）检查固定外部尺寸/位置；这不是通用自由文本约束求解器。
+
+导出不是只检查文件存在：每个制造 STEP 回读后核对有效单实体、体积和包围盒；失败不发布。回读校核保持原来的装配位置，不重新居中。
+
+每次运行独立目录，`run.json` 记录输入 SHA256、实际检查值、未检查零件对 `unchecked_pairs`、制造制品白名单及文件 SHA256。只有 `artifacts` 中列出的文件才是交付件。`inputs_not_for_manufacturing/` 是原始输入快照，包含参考模块，仅用于追溯，严禁打包为制造文件。检查或导出失败时清单为空。没有声明零件对检查时仅报告几何通过；即使所有静态零件对通过，也不代表已校核装入路径、线缆、散热或强度。
+
+## 对应点安装定位（第二批）
+
+`python scripts/register_landmarks.py landmarks.json`
+
+```json
+{
+  "units": "mm",
+  "source_mm": [[0,0,0],[70,0,0],[0,70,0]],
+  "target_mm": [[35,0,0],[105,0,0],[35,70,0]],
+  "tolerance_mm": 0.05
+}
+```
+
+源点、目标点须由用户明确对应，至少三个不共线点。返回 4×4 刚体变换，使用列向量约定 `target = transform @ source`，以及逐点误差、RMS、最大残差。超出容差返回 `rejected` 和非零退出码；禁止缩放或镜像。容差必须按实际精度要求指定。共面点可用，但无法识别用户把对称孔对应关系选反的意图错误，所以始终要求位置确认。
+
+这是数值配准工具，不直接写入 Fusion、不自动识别 STL 孔、不恢复网格丢失的精确曲面；草图/选点读取和模型移动仍需通过明确的确认流程衔接。
+
+## 数据与发布约定
 
 交付代码分支保留原 `master`，不强推、不自动合并。不提交当前选择 token、临时模型、输出 STEP/F3D、草图快照或用户项目的未授权文件。使用记录输出保持在本地。

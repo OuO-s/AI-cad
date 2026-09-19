@@ -240,6 +240,70 @@ def apply_confirmed_change(task_id):
             "checks": "切削体积和实体数已检查，装配干涉未检查"}
 
 
+def preview_envelopes(request):
+    """根装配坐标下的纯图形包络；不创建 BRep，不参与制造导出。"""
+    app, design = context_design()
+    if request.get("units") != "mm" or request.get("frame") != "assembly_world":
+        raise ValueError("包络必须明确 units=mm、frame=assembly_world")
+    envelopes = request.get("envelopes")
+    if not isinstance(envelopes, list) or not envelopes or len(envelopes) > 100:
+        raise ValueError("需提供 1～100 个包络")
+    seen = set()
+    for item in envelopes:
+        label = item.get("id")
+        if not isinstance(label, str) or not label or label in seen:
+            raise ValueError("包络 id 必须非空且唯一")
+        seen.add(label)
+        bounds = item.get("bounds_mm")
+        if not isinstance(bounds, list) or len(bounds) != 2 or any(not isinstance(p, list) or len(p) != 3 for p in bounds):
+            raise ValueError("bounds_mm 必须是 [最小点, 最大点]")
+        if any(isinstance(x, bool) or not isinstance(x, (int, float)) or not math.isfinite(x) for p in bounds for x in p):
+            raise ValueError("包络坐标必须是有限数值")
+        if any(bounds[1][i] <= bounds[0][i] for i in range(3)):
+            raise ValueError("包络三轴必须有正长度")
+        if set(item) != {"id", "bounds_mm"}:
+            raise ValueError("不支持的包络字段，不静默忽略旋转或定位信息")
+    task_id = uuid.uuid4().hex
+    task = {"status": "creating", "kind": "graphics_envelopes", "graphics_id": GROUP + ":" + task_id,
+            "envelopes": envelopes, "frame": "assembly_world", "manufacturing": False}
+    save_task(design, task_id, task)
+    group = design.rootComponent.customGraphicsGroups.add()
+    group.id = task["graphics_id"]
+    # 顶点编号 x*4+y*2+z，向外三角面。仅用于显示，不能冒充精确实体。
+    indices = [0,1,3, 0,3,2, 4,6,7, 4,7,5, 0,4,5, 0,5,1,
+               2,3,7, 2,7,6, 0,2,6, 0,6,4, 1,5,7, 1,7,3]
+    for item in envelopes:
+        lo, hi = item["bounds_mm"]
+        coordinates = [v / 10 for x in (lo[0],hi[0]) for y in (lo[1],hi[1])
+                       for z in (lo[2],hi[2]) for v in (x,y,z)]
+        mesh = group.addMesh(adsk.fusion.CustomGraphicsCoordinates.create(coordinates), indices, [], [])
+        mesh.id = item["id"]
+        mesh.color = adsk.fusion.CustomGraphicsSolidColorEffect.create(adsk.core.Color.create(50, 160, 240, 255))
+        if not mesh.setOpacity(0.3, True):
+            raise ValueError("设置半透明失败；请按任务 id 清理图形，不重试实体操作")
+    task["status"] = "preview"
+    save_task(design, task_id, task)
+    app.activeViewport.refresh()
+    return {"task_id": task_id, "status": "preview", "manufacturing": False,
+            "checks": "仅检查单位、坐标和正尺寸；位置、干涉未验证", "envelopes": envelopes}
+
+
+def clear_envelopes(task_id):
+    app, design = context_design()
+    task = load_task(design, task_id)
+    if task.get("kind") != "graphics_envelopes":
+        raise ValueError("只能清理本工具创建的包络任务")
+    groups = design.rootComponent.customGraphicsGroups
+    for i in range(groups.count - 1, -1, -1):
+        group = groups.item(i)
+        if group.id == task["graphics_id"]:
+            group.deleteMe()
+    task["status"] = "cleared"
+    save_task(design, task_id, task)
+    app.activeViewport.refresh()
+    return {"task_id": task_id, "status": "cleared"}
+
+
 def dispatch(request):
     action = request["action"]
     if action == "read_selection":
@@ -248,6 +312,10 @@ def dispatch(request):
         return read_annotations(request.get("sketch_token"))
     if action == "preview_change":
         return preview_change(request["plan"])
+    if action == "preview_envelopes":
+        return preview_envelopes(request)
+    if action == "clear_envelopes":
+        return clear_envelopes(request["task_id"])
     if action == "confirm_change":
         return confirm_change(request["task_id"], request.get("user_confirmed", False), request.get("depth_mm"))
     if action == "apply_confirmed_change":

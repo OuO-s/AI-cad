@@ -1,5 +1,7 @@
 # ai-cad 管线 Python 依赖（Python 3.10–3.12，64 位）
 build123d>=0.11.0
 jsonschema>=4.20
+# 对应点刚体定位（显式依赖，不依赖 build123d 间接安装）
+numpy>=1.26
 # 可选：跑回归测试
 pytest>=8.0

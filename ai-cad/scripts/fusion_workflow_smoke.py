@@ -11,6 +11,17 @@ def run(context):
         design = adsk.fusion.Design.cast(app.activeProduct)
         design.designType = adsk.fusion.DesignTypes.ParametricDesignType
         root = design.rootComponent
+        # 图形包络必须可清理，且绝不成为制造实体。
+        other_graphics = root.customGraphicsGroups.add()
+        other_graphics.id = "user_owned_graphics"
+        envelope = preview_envelopes({"units": "mm", "frame": "assembly_world",
+                                     "envelopes": [{"id": "A", "bounds_mm": [[0,0,0],[110,110,70]]}]})
+        assert root.bRepBodies.count == 0
+        assert root.customGraphicsGroups.count == 2
+        clear_envelopes(envelope["task_id"])
+        clear_envelopes(envelope["task_id"])
+        assert root.customGraphicsGroups.count == 1
+        assert other_graphics.isValid
         sketch = root.sketches.add(root.xYConstructionPlane)
         sketch.sketchCurves.sketchLines.addTwoPointRectangle(
             adsk.core.Point3D.create(-2.5, -2.5, 0), adsk.core.Point3D.create(2.5, 2.5, 0))
@@ -47,7 +58,8 @@ def run(context):
         again = apply_confirmed_change(task_id)
         assert again["repeated"]
         print(json.dumps({"smoke": "passed", "tests": ["preview_no_body_change",
-                         "stale_confirmation_rejected", "edited_radius_applied", "idempotent_apply"]}))
+                         "stale_confirmation_rejected", "edited_radius_applied", "idempotent_apply",
+                         "graphics_not_manufacturing", "cleanup_preserves_user_graphics"]}))
     finally:
         scratch.close(False)
         if previous and previous.isValid:
